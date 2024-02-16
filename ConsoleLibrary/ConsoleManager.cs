@@ -188,7 +188,7 @@ namespace ConsoleLibrary
         private void RenderLoop()
         {
             if (_frame == null) return;
-            _frame.Render(null);
+            _frame.Render(_frame.EmptyMask);
         }
         public void ClearDisplay()
         {

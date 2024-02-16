@@ -51,19 +51,12 @@
             for (int i = 0; i < width; i++) str += toFill;
             return new(new ConsoleString(str, TextColor, BackColor));
         }
-        public void Render(FrameMask? mask)
+        public void Render((int, int) origin, FrameMask? mask)
         {
             if (_row.Count <= 0)
-                ConsoleString.Pad(Width).Render(mask?[(0,0), Width]);
+                ConsoleString.Pad(Width).Render(origin, mask);
             else
-            {
-                int head = 0;
-                _row.ForEach(str =>
-                {
-                    str.Render(mask?[(head, 0), str.Length]);
-                    head += str.Length;
-                });
-            }
+                _row.ForEach(str => { str.Render(origin, mask); origin.Item1 += str.Length; });
         }
 
         private void Clamp()
