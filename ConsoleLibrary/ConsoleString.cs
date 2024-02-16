@@ -19,18 +19,25 @@ namespace ConsoleLibrary
         }
 
         public ConsoleString DeepCopy() { return new(Data, TextColor, BackColor); }
-        public void Render(FrameMask? mask)
+        private bool CheckBounds((int, int) pos)
+        {
+            (int, int) displaySize = ConsoleManager.Instance._displaySize;
+            return pos.Item1 >= 0 && pos.Item1 < displaySize.Item1 &&
+                   pos.Item2 >= 0 && pos.Item2 < displaySize.Item2;
+        }
+        public void Render((int, int) origin, FrameMask? mask)
         {
             Console.ForegroundColor = TextColor;
             Console.BackgroundColor = BackColor;
-            if(mask == null)
-                Console.Write(Data);
-            else
-                for(int i = 0; i < Data.Length; i++)
-                    if (!mask[(i,0)])
-                        Console.Write(Data[i]);
-                    else
-                        Console.CursorLeft += 1;
+            for (int x = 0; x < Data.Length; x++)
+            {
+                (int, int) pos = (origin.Item1 + x, origin.Item2);
+                if (CheckBounds(pos) && (mask == null || !mask[pos]))
+                {
+                    Console.SetCursorPosition(pos.Item1, pos.Item2);
+                    Console.Write(Data[x]);
+                }
+            }
         }
         public void CycleTextColor() { TextColor = (ConsoleColor)((int)(TextColor + 1) % NumColors); }
         public void CycleBackgroungColor() { BackColor = (ConsoleColor)((int)(BackColor + 1) % NumColors); }
@@ -48,13 +55,5 @@ namespace ConsoleLibrary
         }
         public void Clamp(int len) { Data = Data.Substring(0, len); }
         public static ConsoleString Pad(int len, string msg = "") { return new($"{msg}".PadLeft(len)); }
-    }
-
-    public class LineBreak : ConsoleString
-    {
-        public new string Data { get { return Break(); } }
-        public LineBreak() : base("") { }
-        public static string Break() { return "".PadRight(ConsoleManager.Instance._displaySize.Item1 - Console.GetCursorPosition().Left); }
-        public override string ToString() { return Data; }
     }
 }

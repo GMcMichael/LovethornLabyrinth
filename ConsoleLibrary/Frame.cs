@@ -84,96 +84,66 @@ namespace ConsoleLibrary
             X = _x ?? X;
             Y = _y ?? Y;
         }
-        public void DrawBorder(FrameMask? mask)
+        public FrameMask EmptyMask { get { return new(Width, Height); } }
+        public void DrawBorder(FrameMask? mask = null)
         {
             Console.ForegroundColor = BorderTextColor;
             Console.BackgroundColor = BorderBackColor;
 
-            string top = " ";
-            for (int i = 0; i < Width; i++) top += "_";
-            top += ' ';
-
-            string bot = "\\";
-            for (int i = 0; i < Width; i++) bot += "_";
-            bot += '/';
-
-            if (mask != null)
-            {
-                //draw top
-                (int, int) maskPos = (0, 0);
-                (int, int) consPos = (BorderX, BorderY);
-                AttemptRender(consPos, top, mask[maskPos, BorderWidth]);
-
-                //draw top connector
-                maskPos.Item2 = 1;// 0, 1
-                consPos.Item2 = Y;
-                AttemptRender(consPos, '/', mask[maskPos]);
-
-                maskPos.Item1 = Width + 1;// 59, 1
-                consPos.Item1 = X + Width;
-                AttemptRender(consPos, '\\', mask[maskPos]);
-
-                //draw middle
-                for (int y = 1; y < Height; y++)
-                {
-                    maskPos = (0, y + 1);//0, 2
-                    consPos = (BorderX, Y + y);
-                    AttemptRender(consPos, '|', mask[maskPos]);
-                    maskPos.Item1 = Width + 1;//59, 2
-                    consPos.Item1 = X + Width;
-                    AttemptRender(consPos, '|', mask[maskPos]);
-                }
-
-                //draw bottom with connector
-                maskPos = (0, Height + 1);//0, 29 (Height)
-                consPos = (BorderX, Y + Height);
-                AttemptRender(consPos, bot, mask[maskPos, BorderWidth]);
-                return;
-            }
+            string top = " ", bot = "\\";
+            for (int i = 0; i < Width; i++) { top += "_"; bot += "_"; }
+            top += ' '; bot += '/';
 
             //draw top
-            Console.SetCursorPosition(BorderX, BorderY);
-            Console.Write(top);
+            AttemptRender((BorderX, BorderY), top, mask);
 
             //draw top connector
-            Console.SetCursorPosition(BorderX, Y);
-            Console.Write('/');
-            Console.SetCursorPosition(X + Width, Y);
-            Console.Write('\\');
+            AttemptRender((BorderX, Y), '/', mask);
+            AttemptRender((Width + X, Y), '\\', mask);
 
             //draw middle
             for (int y = 1; y < Height; y++)
             {
-                Console.SetCursorPosition(BorderX, Y + y);
-                Console.Write('|');
-                Console.SetCursorPosition(X + Width, Y + y);
-                Console.Write('|');
+                AttemptRender((BorderX, Y + y), '|', mask);
+                AttemptRender((Width + X, Y + y), '|', mask);
             }
 
             //draw bottom with connector
-            Console.SetCursorPosition(BorderX, Y + Height);
-            Console.Write(bot);
+            AttemptRender((BorderX, Y + Height), bot, mask);
         }
-        public void AttemptRender((int, int) origin, char msg, bool mask)
+        protected bool CheckBounds((int, int) pos)
         {
             (int, int) displaySize = ConsoleManager.Instance._displaySize;
-            if (!mask &&
-               origin.Item1 >= 0 && origin.Item1 < displaySize.Item1 &&
-               origin.Item2 >= 0 && origin.Item2 < displaySize.Item2)
+            return pos.Item1 >= 0 && pos.Item1 < displaySize.Item1 &&
+                   pos.Item2 >= 0 && pos.Item2 < displaySize.Item2;
+        }
+        private bool CheckRender((int, int) pos, FrameMask? mask = null)
+        {
+            bool b = CheckBounds(pos);
+            if (b &&
+                mask != null &&
+                pos.Item1 < mask.Width &&
+                pos.Item2 < mask.Height)
+            {
+                b = !mask[pos];
+            }
+            return b;
+        }
+        public void AttemptRender((int, int) origin, char msg, FrameMask? mask = null)
+        {
+            if (CheckRender(origin, mask))
             {
                 Console.SetCursorPosition(origin.Item1, origin.Item2);
                 Console.Write(msg);
             }
         }
-        public void AttemptRender((int, int) origin, string row, FrameMask mask)
+        public void AttemptRender((int, int) origin, string row, FrameMask? mask = null)
         {
-            (int, int) displaySize = ConsoleManager.Instance._displaySize;
-            if (origin.Item2 < 0 || origin.Item2 >= displaySize.Item2) return;
+            if (origin.Item1 < 0 || origin.Item1 >= ConsoleManager.Instance._displaySize.Item1 ||
+                origin.Item2 < 0 || origin.Item2 >= ConsoleManager.Instance._displaySize.Item2) return;
             for (int x = 0; x < row.Length; x++)
             {
-                if (origin.Item1 + x >= 0 &&
-                    origin.Item1 + x < displaySize.Item1 &&
-                    !mask[(x, 0)])
+                if(CheckRender((origin.Item1 + x, origin.Item2), mask))
                 {
                     Console.SetCursorPosition(origin.Item1 + x, origin.Item2);
                     Console.Write(row[x]);
@@ -212,19 +182,18 @@ namespace ConsoleLibrary
         public override void Render(FrameMask? mask)
         {
             if (Border) DrawBorder(mask);
+
             for (int y = 0; y < Height; y++)
-            {
-                Console.SetCursorPosition(X, Y + y);
-                _rows[y].Render(mask?[(1, y + 1), Width]);
-            }
+                if (Y + y >= 0 && Y + y < ConsoleManager.Instance._displaySize.Item2)
+                    _rows[y].Render((X, Y + y), mask);
         }
 
         public override StringFrame DeepCopy()
         {
             StringFrame newFrame = new(X, Y, Width, Height, Border);
 
-            foreach (var row in _rows)
-                newFrame.Push(row.DeepCopy());
+            for (int y = 0; y < Height; y++)
+                if (_rows[y].Length > 0) { newFrame.head = y; newFrame.Push(_rows[y].DeepCopy()); }
 
             return newFrame;
         }
@@ -233,34 +202,18 @@ namespace ConsoleLibrary
     public class PriorityFrame : FrameBase
     {
         public PriorityQueue<FrameBase, int> PriorityQueue { get; set; } = new();
-        private FrameMask InternalMask;
 
-        public PriorityFrame(int x, int y, int width, int height, bool border = false) : base(x, y, width, height, border)
-        {
-            InternalMask = new(width, height);
-        }
+        public PriorityFrame(int x, int y, int width, int height, bool border = false) : base(x, y, width, height, border) { }
 
         public void Push(FrameBase frame, int priority = 0) { PriorityQueue.Enqueue(frame, priority); }
 
         public override void Render(FrameMask? mask)
         {
-            if (mask != null) InternalMask = mask;
-            else InternalMask.Clear();
-
-            if (Border) DrawBorder(InternalMask);
+            if (Border) DrawBorder(mask);
 
             PriorityQueue<FrameBase, int> temp = new PriorityQueue<FrameBase, int>(PriorityQueue.UnorderedItems);
-
-            while(!InternalMask.HasAllSet())
-            {
-                if (temp.Count <= 0) break;
-                //draw next frame from priority queue
-                FrameBase frame = temp.Dequeue();
-
-                //pass just section this draws to and set bits to true
-                bool test = InternalMask.HasAllSet();
-                frame.Render(InternalMask[(frame.BorderX, frame.BorderY), (frame.BorderWidth, frame.BorderHeight)]);
-            }
+            while(temp.Count > 0 && (mask is null ? false : !mask.HasAllSet()))
+                temp.Dequeue().Render(mask);
         }
 
         public override PriorityFrame DeepCopy()
