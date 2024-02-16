@@ -192,8 +192,8 @@ namespace ConsoleLibrary
         {
             StringFrame newFrame = new(X, Y, Width, Height, Border);
 
-            foreach (var row in _rows)
-                newFrame.Push(row.DeepCopy());
+            for (int y = 0; y < Height; y++)
+                if (_rows[y].Length > 0) { newFrame.head = y; newFrame.Push(_rows[y].DeepCopy()); }
 
             return newFrame;
         }

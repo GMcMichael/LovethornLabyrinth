@@ -29,7 +29,7 @@ namespace LovethornLabyrinth
 
             PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
 
-            StringFrame WelcomeFrame = new(5, 0, ConsoleDimensions[0] / 2, ConsoleDimensions[1], true);
+            StringFrame WelcomeFrame = new(0, 0, ConsoleDimensions[0] / 2, ConsoleDimensions[1], true);
 
             WelcomeFrame.PushEmpty();
             WelcomeFrame.PushCenter(new ConsoleString[]
@@ -39,28 +39,17 @@ namespace LovethornLabyrinth
                 new ConsoleString("Labyrinth", ConsoleColor.DarkYellow),
             });
 
-            WelcomeFrame.Move(0);
-
-            // StringFrame WelcomeFrame2 = WelcomeFrame.DeepCopy();
-            // 
-            // WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            // WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            // WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            // WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            // WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            // WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-
-            StringFrame WelcomeFrame2 = new(59, 0, ConsoleDimensions[0] / 2, ConsoleDimensions[1], true);
-
+            StringFrame WelcomeFrame2 = WelcomeFrame.DeepCopy();
+             
             WelcomeFrame2.PushEmpty();
-            WelcomeFrame2.PushCenter(new ConsoleString[]
-            {
-                new ConsoleString("Welcome to "),
-                new ConsoleString("Lovethorn ", ConsoleColor.Magenta),
-                new ConsoleString("Labyrinth", ConsoleColor.DarkYellow),
-            });
+            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
+            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
+            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
+            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
+            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
+            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
 
-            //WelcomeFrame2.Move(59);
+            WelcomeFrame2.Move(59);
             
             priorityFrame.Push(WelcomeFrame2, 2);
 
