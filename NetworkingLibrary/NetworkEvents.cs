@@ -1,106 +1,22 @@
-﻿using System.Net;
-using System.Reflection.Metadata;
+﻿using EventSystem;
+using EventSystem.Events;
+using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using EventHandler = EventSystem.EventHandler;
 
 namespace NetworkingLibrary
 {
-    #region Event System
-    public enum EventType
-    {
-        Error,
-        Message,
-        Command,
-        SendData,
-        ReceiveData,
-        HostStart,
-        HostEnd,
-        ClientJoin,
-        ClientLeave
-    }
-    public enum CommandType
-    {
-        Host,
-        Connect,
-        Leave,
-        User,
-        Quit,
-        Test
-    }
-    public  class EventHandler
-    {
-        public event EventHandler<BaseEventArgs>? OnEvent;
-
-        public void RaiseEvent(BaseEventArgs e) { OnEvent?.Invoke(this, e); }
-    }
-
-    public abstract class BaseEventArgs
-    {
-        [JsonPropertyOrder(-2)]
-        public EventType EventType {  get; set; }
-        [JsonPropertyOrder(-1)]
-        public User User { get; set; } = new();
-        
-        public BaseEventArgs(EventType eventType, User user)
-        {
-            EventType = eventType;
-            User = user;
-        }
-        public BaseEventArgs(EventType eventType, string user)
-        {
-            EventType = eventType;
-            User = new User(user);
-        }
-
-        public abstract string Serialize();
-        public static void Test(bool log = false) { if(log) NetworkManager.Instance.Log("Default Test"); }
-    }
-    #endregion
 
     #region Events
-    public class CommandEvent : BaseEventArgs
-    {
-        public CommandType Command {  get; set; }
-        public string[] Args {  get; set; }
-
-        public CommandEvent(CommandType command, string[] args, User user) : base(EventType.Command, user)
-        {
-            Command = command;
-            Args = args;
-        }
-
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
-        public static new bool Test(bool log = false)
-        {
-            if(log) NetworkManager.Instance.Log("Testing CommandEvent");
-            try
-            {
-                string json = JsonSerializer.Serialize(new CommandEvent(CommandType.Test, Array.Empty<string>(), new User()));
-                CommandEvent? testCommandEvent = JsonSerializer.Deserialize<CommandEvent>(json);
-                if (testCommandEvent == null)
-                {
-                    if(log) NetworkManager.Instance.Log("CommandEvent Failed\n");
-                    return false;
-                }
-                if(log) NetworkManager.Instance.Log("CommandEvent Passed\n");
-                return true;
-            }
-            catch (Exception e)
-            {
-                if(log) NetworkManager.Instance.Log($"CommandEvent Failed\n");
-                return false;
-            }
-        }
-    }
     public class SendDataEvent : BaseEventArgs
     {
         public string Data {  get; set; }
-        public SendDataEvent(string data, User user) : base(EventType.SendData, user)
+        public SendDataEvent(string data, User user) : base(EventType.SendData, user.Username)
         {
             Data = data;
         }
 
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
+        //public override string Serialize() { return JsonSerializer.Serialize(this); }
 
         public static new bool Test(bool log = false)
         {
@@ -128,11 +44,8 @@ namespace NetworkingLibrary
     {
         public string? Data { get; set; }
         public EventType? DataType {  get; set; }
-        public ReceiveDataEvent() : base(EventType.ReceiveData, new User())
-        {
-        }
 
-        public ReceiveDataEvent(string data) : base(EventType.ReceiveData, new User())
+        public ReceiveDataEvent(string data) : base(EventType.ReceiveData)
         {
             Data = data;
             try
@@ -142,25 +55,25 @@ namespace NetworkingLibrary
                 int startIndex = Data.IndexOf(':', Data.IndexOf(':') + 1) + 2;
                 int endIndex = Data.IndexOf(',', Data.IndexOf(',') + 1) - 1;
                 string newUsername = Data[startIndex..endIndex];
-                if (User.Username == User.defaultName && !string.IsNullOrEmpty(newUsername))
-                    User.Username = newUsername;
+                if (Username == User.defaultName && !string.IsNullOrEmpty(newUsername))
+                    Username = newUsername;
             }
             catch (Exception e)
             {
-                User.Username = User.defaultName;
+                Username = User.defaultName;
                 DataType = EventType.Error;
                 NetworkManager.Instance.Log($"Error while receiving data:\nData: {Data}\nError: {e}");
             }
         }
         public ReceiveDataEvent(SendDataEvent _sendDataEvent) : this(_sendDataEvent.Data) { }
 
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
+        //public override string Serialize() { return JsonSerializer.Serialize(this); }
         public static new bool Test(bool log = false)
         {
             if(log) NetworkManager.Instance.Log("Testing ReceiveDataEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new ReceiveDataEvent(new SendDataEvent(new MessageEvent("Test Data", new User()).Serialize(), new User())));
+                string json = JsonSerializer.Serialize(new ReceiveDataEvent(new SendDataEvent(new MessageEvent("Test Data", new User().Username).Serialize(), new User())));
                 ReceiveDataEvent? testReceiveDataEvent = JsonSerializer.Deserialize<ReceiveDataEvent>(json);
                 if (testReceiveDataEvent == null)
                 {
@@ -177,48 +90,18 @@ namespace NetworkingLibrary
             }
         }
     }
-    public class MessageEvent : BaseEventArgs
-    {
-        public string Message {  get; set; }
-        public MessageEvent(string message, User user) : base(EventType.Message, user)
-        {
-            Message = message;
-        }
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
-        public static new bool Test(bool log = false)
-        {
-            if(log) NetworkManager.Instance.Log("Testing MessageEvent");
-            try
-            {
-                string json = JsonSerializer.Serialize(new MessageEvent("Test Message", new User()));
-                MessageEvent? testMessageEvent = JsonSerializer.Deserialize<MessageEvent>(json);
-                if (testMessageEvent == null)
-                {
-                    if(log) NetworkManager.Instance.Log("MessageEvent Failed\n");
-                    return false;
-                }
-                if(log) NetworkManager.Instance.Log("MessageEvent Passed\n");
-                return true;
-            }
-            catch (Exception e)
-            {
-                if(log) NetworkManager.Instance.Log($"MessageEvent Failed\n");
-                return false;
-            }
-        }
-    }
     public class ServerStartEvent : BaseEventArgs
     {
         public string Host {  get; set; }
         public int Port {  get; set; }
 
-        public ServerStartEvent(string host, int port, User user) : base(EventType.HostStart, user)
+        public ServerStartEvent(string host, int port, User user) : base(EventType.HostStart, user.Username)
         {
             Host = host;
             Port = port;
         }
 
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
+        //public override string Serialize() { return JsonSerializer.Serialize(this); }
         public static new bool Test(bool log = false)
         {
             if(log) NetworkManager.Instance.Log("Testing ServerStartEvent");
@@ -246,17 +129,17 @@ namespace NetworkingLibrary
         public string Host { get; set; }
         public int Port { get; set; }
 
-        public ServerEndEvent(string host, int port, User user) : base(EventType.HostEnd, user)
+        public ServerEndEvent(string host, int port, User user) : base(EventType.HostEnd, user.Username)
         {
             Host = host;
             Port = port;
         }
-        public ServerEndEvent(EndPoint endPoint, User user) : base(EventType.HostEnd, user)
+        public ServerEndEvent(EndPoint endPoint, User user) : base(EventType.HostEnd, user.Username)
         {
             string? host = endPoint.ToString();
         }
 
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
+        //public override string Serialize() { return JsonSerializer.Serialize(this); }
         public static new bool Test(bool log = false)
         {
             if(log) NetworkManager.Instance.Log("Testing ServerEndEvent");
@@ -283,13 +166,13 @@ namespace NetworkingLibrary
     {
         public string Host {  get; set; }
         public int Port { get; set; }
-        public ClientJoinEvent(string host, int port, User user) : base(EventType.ClientJoin, user)
+        public ClientJoinEvent(string host, int port, User user) : base(EventType.ClientJoin, user.Username)
         {
             Host = host;
             Port = port;
         }
 
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
+        //public override string Serialize() { return JsonSerializer.Serialize(this); }
         public static new bool Test(bool log = false)
         {
             if (log) NetworkManager.Instance.Log("Testing ClientJoinEvent");
@@ -316,17 +199,17 @@ namespace NetworkingLibrary
     {
         public string Host { get; set; }
         public int Port { get; set; }
-        public ClientLeaveEvent(string host, int port, User user) : base(EventType.ClientLeave, user)
+        public ClientLeaveEvent(string host, int port, User user) : base(EventType.ClientLeave, user.Username)
         {
             Host = host;
             Port = port;
         }
-        public ClientLeaveEvent(EndPoint endPoint, User user) : base(EventType.ClientLeave, user)
+        public ClientLeaveEvent(EndPoint endPoint, User user) : base(EventType.ClientLeave, user.Username)
         {
             string? host = endPoint.ToString();
         }
 
-        public override string Serialize() { return JsonSerializer.Serialize(this); }
+        //public override string Serialize() { return JsonSerializer.Serialize(this); }
         public static new bool Test(bool log = false)
         {
             if (log) NetworkManager.Instance.Log("Testing ClientLeaveEvent");

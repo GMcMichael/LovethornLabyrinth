@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using EventSystem;
+using System.Runtime.InteropServices;
 
 namespace ConsoleLibrary
 {
@@ -279,7 +280,7 @@ namespace ConsoleLibrary
                     type = CommandType.Quit;
                     break;
             }
-            ConsoleEvents.Instance.SendCommand(new CommandEvent(type, args[1..]));
+            ConsoleEvents.Instance.SendCommand(new EventSystem.Events.CommandEvent(type, args[1..], "Console"));
         }
         #endregion
 

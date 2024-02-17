@@ -2,6 +2,8 @@
 using System.Net;
 using System.Text.Json;
 using System.Text;
+using EventSystem;
+using EventSystem.Events;
 
 namespace NetworkingLibrary
 {
@@ -87,9 +89,9 @@ namespace NetworkingLibrary
                     if (_hosting)
                         _hostClientConnections.ForEach(client =>
                         {
-                            if (!client._user.Equals(messageEvent.User))
+                            if (!client._user.Equals(messageEvent.Username))
                             {
-                                SendDataEvent dataEvent = new SendDataEvent(messageEvent.Serialize(), messageEvent.User);
+                                SendDataEvent dataEvent = new SendDataEvent(messageEvent.Serialize(), new User(messageEvent.Username));
                                 NetworkEvents.Instance.SendData(dataEvent);
                             }
                         });
@@ -319,6 +321,7 @@ namespace NetworkingLibrary
                 allPassed = ReceiveDataEvent.Test(log) && allPassed;
 
                 allPassed = CommandEvent.Test(log) && allPassed;
+                allPassed = MessageEvent.Test(log) && allPassed;
 
                 allPassed = ServerStartEvent.Test(log) && allPassed;
                 allPassed = ServerEndEvent.Test(log) && allPassed;

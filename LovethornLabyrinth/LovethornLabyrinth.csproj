@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ConsoleLibrary\ConsoleLibrary.csproj" />
+    <ProjectReference Include="..\LabyrinthLibrary\LabyrinthLibrary.csproj" />
     <ProjectReference Include="..\NetworkingLibrary\NetworkingLibrary.csproj" />
   </ItemGroup>
 
