@@ -91,7 +91,7 @@ namespace NetworkingLibrary
                         {
                             if (!client._user.Equals(messageEvent.Username))
                             {
-                                SendDataEvent dataEvent = new SendDataEvent(messageEvent.Serialize(), new User(messageEvent.Username));
+                                SendDataEvent dataEvent = new SendDataEvent(messageEvent.Serialize(), messageEvent.Username);
                                 NetworkEvents.Instance.SendData(dataEvent);
                             }
                         });
@@ -381,7 +381,7 @@ namespace NetworkingLibrary
             _clientConnection.ListenForData();
             SendData();
 
-            NetworkEvents.Instance.ClientJoined(new ClientJoinEvent(host, (int)port, _clientConnection._user));
+            NetworkEvents.Instance.ClientJoined(new ClientJoinEvent(host, (int)port, _clientConnection._user.Username));
 
             _isBusy = false;
         }
@@ -411,7 +411,7 @@ namespace NetworkingLibrary
             _clientConnection.WaitForNewConnections();
             SendData();
 
-            NetworkEvents.Instance.ServerStarted(new ServerStartEvent(host, (int)port, _clientConnection._user));
+            NetworkEvents.Instance.ServerStarted(new ServerStartEvent(host, (int)port, _clientConnection._user.Username));
 
             _isBusy = false;
         }

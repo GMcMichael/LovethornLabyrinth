@@ -13,7 +13,7 @@ namespace EventSystem.Events
         {
             try
             {
-                string json = JsonSerializer.Serialize(new MessageEvent("Test Message", "Test_User"));
+                string json = new MessageEvent("Test Message", "Test_User").Serialize();
                 MessageEvent? testMessageEvent = JsonSerializer.Deserialize<MessageEvent>(json);
                 return testMessageEvent != null;
             }

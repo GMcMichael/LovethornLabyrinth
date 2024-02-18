@@ -2,6 +2,7 @@
 using EventSystem.Events;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using EventHandler = EventSystem.EventHandler;
 
 namespace NetworkingLibrary
@@ -11,7 +12,7 @@ namespace NetworkingLibrary
     public class SendDataEvent : BaseEventArgs
     {
         public string Data {  get; set; }
-        public SendDataEvent(string data, User user) : base(EventType.SendData, user.Username)
+        public SendDataEvent(string data, string username) : base(EventType.SendData, username)
         {
             Data = data;
         }
@@ -23,7 +24,7 @@ namespace NetworkingLibrary
             if(log) NetworkManager.Instance.Log("Testing SendDataEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new SendDataEvent("Test Data", new User()));
+                string json = JsonSerializer.Serialize(new SendDataEvent("Test Data", "Test_User"));
                 SendDataEvent? testSendDataEvent = JsonSerializer.Deserialize<SendDataEvent>(json);
                 if (testSendDataEvent == null)
                 {
@@ -65,6 +66,7 @@ namespace NetworkingLibrary
                 NetworkManager.Instance.Log($"Error while receiving data:\nData: {Data}\nError: {e}");
             }
         }
+        public ReceiveDataEvent() : base(EventType.ReceiveData) { }
         public ReceiveDataEvent(SendDataEvent _sendDataEvent) : this(_sendDataEvent.Data) { }
 
         //public override string Serialize() { return JsonSerializer.Serialize(this); }
@@ -73,7 +75,7 @@ namespace NetworkingLibrary
             if(log) NetworkManager.Instance.Log("Testing ReceiveDataEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new ReceiveDataEvent(new SendDataEvent(new MessageEvent("Test Data", new User().Username).Serialize(), new User())));
+                string json = JsonSerializer.Serialize(new ReceiveDataEvent(new SendDataEvent(new MessageEvent("Test Data", "Test_User").Serialize(), "Test_User")));
                 ReceiveDataEvent? testReceiveDataEvent = JsonSerializer.Deserialize<ReceiveDataEvent>(json);
                 if (testReceiveDataEvent == null)
                 {
@@ -95,7 +97,7 @@ namespace NetworkingLibrary
         public string Host {  get; set; }
         public int Port {  get; set; }
 
-        public ServerStartEvent(string host, int port, User user) : base(EventType.HostStart, user.Username)
+        public ServerStartEvent(string host, int port, string username) : base(EventType.HostStart, username)
         {
             Host = host;
             Port = port;
@@ -107,7 +109,7 @@ namespace NetworkingLibrary
             if(log) NetworkManager.Instance.Log("Testing ServerStartEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new ServerStartEvent(NetworkManager.GetLocalIP(), NetworkManager._defaultPort, new User()));
+                string json = JsonSerializer.Serialize(new ServerStartEvent(NetworkManager.GetLocalIP(), NetworkManager._defaultPort, "Test_User"));
                 ServerStartEvent? testServerStartEvent = JsonSerializer.Deserialize<ServerStartEvent>(json);
                 if (testServerStartEvent == null)
                 {
@@ -128,8 +130,8 @@ namespace NetworkingLibrary
     {
         public string Host { get; set; }
         public int Port { get; set; }
-
-        public ServerEndEvent(string host, int port, User user) : base(EventType.HostEnd, user.Username)
+        [JsonConstructor]
+        public ServerEndEvent(string host, int port, string username) : base(EventType.HostEnd, username)
         {
             Host = host;
             Port = port;
@@ -145,7 +147,7 @@ namespace NetworkingLibrary
             if(log) NetworkManager.Instance.Log("Testing ServerEndEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new ServerEndEvent(NetworkManager._localHost, NetworkManager._defaultPort, new User()));
+                string json = JsonSerializer.Serialize(new ServerEndEvent(NetworkManager._localHost, NetworkManager._defaultPort, "Test_User"));
                 ServerEndEvent? testServerEndEvent = JsonSerializer.Deserialize<ServerEndEvent>(json);
                 if (testServerEndEvent == null)
                 {
@@ -166,7 +168,7 @@ namespace NetworkingLibrary
     {
         public string Host {  get; set; }
         public int Port { get; set; }
-        public ClientJoinEvent(string host, int port, User user) : base(EventType.ClientJoin, user.Username)
+        public ClientJoinEvent(string host, int port, string username) : base(EventType.ClientJoin, username)
         {
             Host = host;
             Port = port;
@@ -178,7 +180,7 @@ namespace NetworkingLibrary
             if (log) NetworkManager.Instance.Log("Testing ClientJoinEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new ClientJoinEvent(NetworkManager._localHost, NetworkManager._defaultPort, new User()));
+                string json = JsonSerializer.Serialize(new ClientJoinEvent(NetworkManager._localHost, NetworkManager._defaultPort, "Test_User"));
                 ClientJoinEvent? testClientJoinEvent = JsonSerializer.Deserialize<ClientJoinEvent>(json);
                 if (testClientJoinEvent == null)
                 {
@@ -199,7 +201,8 @@ namespace NetworkingLibrary
     {
         public string Host { get; set; }
         public int Port { get; set; }
-        public ClientLeaveEvent(string host, int port, User user) : base(EventType.ClientLeave, user.Username)
+        public ClientLeaveEvent() : base(EventType.ClientLeave) { }
+        public ClientLeaveEvent(string host, int port, string username) : base(EventType.ClientLeave, username)
         {
             Host = host;
             Port = port;
@@ -215,7 +218,7 @@ namespace NetworkingLibrary
             if (log) NetworkManager.Instance.Log("Testing ClientLeaveEvent");
             try
             {
-                string json = JsonSerializer.Serialize(new ClientLeaveEvent(NetworkManager._localHost, NetworkManager._defaultPort, new User()));
+                string json = JsonSerializer.Serialize(new ClientLeaveEvent(NetworkManager._localHost, NetworkManager._defaultPort, "Test_User"));
                 ClientLeaveEvent? testClientLeaveEvent = JsonSerializer.Deserialize<ClientLeaveEvent>(json);
                 if (testClientLeaveEvent == null)
                 {

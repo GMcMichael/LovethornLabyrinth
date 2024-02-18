@@ -17,7 +17,7 @@ namespace EventSystem.Events
         {
             try
             {
-                string json = JsonSerializer.Serialize(new CommandEvent(CommandType.Test, Array.Empty<string>(), "Test_User"));
+                string json = new CommandEvent(CommandType.Test, Array.Empty<string>(), "Test_User").Serialize();
                 CommandEvent? testCommandEvent = JsonSerializer.Deserialize<CommandEvent>(json);
                 return testCommandEvent != null;
             }
