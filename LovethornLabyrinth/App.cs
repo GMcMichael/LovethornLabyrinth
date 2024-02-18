@@ -62,8 +62,8 @@ namespace LovethornLabyrinth
             NetworkEvents.Instance.OnServerStart.OnEvent += OnServerStart;
             NetworkEvents.Instance.OnServerEnd.OnEvent += OnServerEnd;
 
-            ConsoleEvents.Instance.OnSendMessage.OnEvent += OnSendMessage;
-            ConsoleEvents.Instance.OnSendCommand.OnEvent += OnSendCommand;
+            ConsoleEvents.Instance.OnMessageSend.OnEvent += OnSendMessage;
+            ConsoleEvents.Instance.OnCommandSend.OnEvent += OnSendCommand;
         }
         #endregion
 

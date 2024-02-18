@@ -5,7 +5,7 @@ namespace ConsoleLibrary
 {
     public class ConsoleManager
     {
-        public static ConsoleManager Instance = new();
+        public static ConsoleManager Instance { get; private set; } = new();
         public static bool IsConsole = true;
         public ConsoleManager() { }
 
@@ -226,7 +226,7 @@ namespace ConsoleLibrary
 
             Console.Write(GetStamp());
             string? msg = Console.ReadLine();
-            if (String.IsNullOrEmpty(msg)) return false;
+            if (string.IsNullOrEmpty(msg)) return false;
 
             if (msg[0] == _commandChar)
                 ProcessCommand(msg.ToLower().Substring(1));
@@ -280,7 +280,7 @@ namespace ConsoleLibrary
                     type = CommandType.Quit;
                     break;
             }
-            ConsoleEvents.Instance.SendCommand(new EventSystem.Events.CommandEvent(type, args[1..], "Console"));
+            ConsoleEvents.Instance.SendCommand(type, args[1..]);
         }
         #endregion
 

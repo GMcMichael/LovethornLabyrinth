@@ -2,7 +2,7 @@
 using EventSystem.Events;
 using System.Net;
 using System.Text.Json.Serialization;
-using EventHandler = EventSystem.EventHandler;
+using BaseEventHandler = EventSystem.BaseEventHandler;
 
 namespace NetworkingLibrary
 {
@@ -95,33 +95,28 @@ namespace NetworkingLibrary
     }
     #endregion
 
-    public class NetworkEvents
+    public class NetworkEvents : BaseEventSystem
     {
-        public static NetworkEvents Instance = new();
+        public static NetworkEvents Instance { get; private set; } = new();
         public NetworkEvents() { }
 
         #region Event Handlers
         public event EventHandler<string>? OnLog;
 
-        public EventHandler OnDataReceived = new();
-        public EventHandler OnSendData = new();
+        public BaseEventHandler OnDataReceived = new();
+        public BaseEventHandler OnSendData = new();
 
-        public EventHandler OnCommandRecieved = new();
-        public EventHandler OnMessageRecieved = new();
+        public BaseEventHandler OnClientJoin = new();
+        public BaseEventHandler OnClientLeave = new();
 
-        public EventHandler OnClientJoin = new();
-        public EventHandler OnClientLeave = new();
-
-        public EventHandler OnServerStart = new();
-        public EventHandler OnServerEnd = new();
+        public BaseEventHandler OnServerStart = new();
+        public BaseEventHandler OnServerEnd = new();
         #endregion
 
         #region Event Raise
         public void PassLog(string message) { OnLog?.Invoke(this, message); }
         public void DataReceived(ReceiveDataEvent dataEvent) { OnDataReceived.RaiseEvent(dataEvent); }
         public void SendData(SendDataEvent dataEvent) { OnSendData.RaiseEvent(dataEvent); }
-        public void MessageReceived(MessageEvent message) { OnMessageRecieved.RaiseEvent(message); }
-        public void CommandRecieved(CommandEvent command) { OnCommandRecieved.RaiseEvent(command); }
         public void ServerStarted(ServerStartEvent hostStart) { OnServerStart.RaiseEvent(hostStart); }
         public void ServerEnded(ServerEndEvent hostEnd) { OnServerEnd.RaiseEvent(hostEnd); }
         public void ClientJoined(ClientJoinEvent clientJoinEvent) { OnClientJoin.RaiseEvent(clientJoinEvent); }

@@ -10,7 +10,7 @@ namespace NetworkingLibrary
     //TODO: should I set up pooling for host/server https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.socketasynceventargs.setbuffer?view=net-8.0&redirectedfrom=MSDN#System_Net_Sockets_SocketAsyncEventArgs_SetBuffer_System_Byte___System_Int32_System_Int32_
     public class NetworkManager
     {
-        public static NetworkManager Instance = new();
+        public static NetworkManager Instance { get; private set; } = new();
 
         public NetworkManager() { }
 
