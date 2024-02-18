@@ -2,13 +2,16 @@
 using System.Net;
 using System.Text.Json;
 using System.Text;
+using EventSystem;
+using EventSystem.Events;
+using EventSystem.Events.NetworkEvents;
 
 namespace NetworkingLibrary
 {
     //TODO: should I set up pooling for host/server https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.socketasynceventargs.setbuffer?view=net-8.0&redirectedfrom=MSDN#System_Net_Sockets_SocketAsyncEventArgs_SetBuffer_System_Byte___System_Int32_System_Int32_
     public class NetworkManager
     {
-        public static NetworkManager Instance = new();
+        public static NetworkManager Instance { get; private set; } = new();
 
         public NetworkManager() { }
 
@@ -45,7 +48,7 @@ namespace NetworkingLibrary
         #region Event Callbacks
         public void InitEventCallbacks()
         {
-            NetworkEvents.Instance.OnSendData.OnEvent += OnSendData;
+            NetworkEvents.Instance.OnDataSend.OnEvent += OnSendData;
             NetworkEvents.Instance.OnDataReceived.OnEvent += OnDataReceived;
             NetworkEvents.Instance.OnCommandRecieved.OnEvent += OnCommandRecieved;
             NetworkEvents.Instance.OnClientJoin.OnEvent += OnClientJoin;
@@ -59,8 +62,7 @@ namespace NetworkingLibrary
                 if (_hosting) CheckClientList();
                 Task.Run(async () =>
                 {
-                    string message = dataEvent.Serialize() + _endOfData;
-                    //Log($"Sending data: {message}");
+                    string message = ((ISerializable)dataEvent).Serialize() + _endOfData;
                     var messageBytes = Encoding.UTF8.GetBytes(message);
                     if (_connected)
                         await _clientConnection._socket.SendAsync(messageBytes);
@@ -87,9 +89,9 @@ namespace NetworkingLibrary
                     if (_hosting)
                         _hostClientConnections.ForEach(client =>
                         {
-                            if (!client._user.Equals(messageEvent.User))
+                            if (!client._user.Equals(messageEvent.Username))
                             {
-                                SendDataEvent dataEvent = new SendDataEvent(messageEvent.Serialize(), messageEvent.User);
+                                SendDataEvent dataEvent = new SendDataEvent(((ISerializable) messageEvent).Serialize(), messageEvent.Username);
                                 NetworkEvents.Instance.SendData(dataEvent);
                             }
                         });
@@ -120,12 +122,12 @@ namespace NetworkingLibrary
                             conn.CloseConnection();
                         }
                         _hostClientConnections.Clear();
-                        NetworkEvents.Instance.ServerEnded(new ServerEndEvent(_clientConnection._socket.LocalEndPoint, _clientConnection._user)); ;
+                        NetworkEvents.Instance.ServerEnded(new ServerEndEvent(_clientConnection._socket.LocalEndPoint, _clientConnection._user.Username)); ;
                     }
                     if (_connected)
                     {
                         _connected = false;// check to see if this is set after the event
-                        NetworkEvents.Instance.ClientLeft(new ClientLeaveEvent(_clientConnection._socket.RemoteEndPoint, _clientConnection._user));
+                        NetworkEvents.Instance.ClientLeft(new ClientLeaveEvent(_clientConnection._socket.RemoteEndPoint, _clientConnection._user.Username));
                     }
                     _clientConnection.Reset();
                     break;
@@ -249,7 +251,7 @@ namespace NetworkingLibrary
             using (StreamWriter sw = new StreamWriter(Path.Combine(APP_PATH, _userFileName), false))
             {
                 foreach (User user in savingUsers)
-                    sw.WriteLine(user.Serialize());
+                    sw.WriteLine(((ISerializable) user).Serialize());
             }
         }
         public User[] ReadUsers()
@@ -285,7 +287,7 @@ namespace NetworkingLibrary
             _lastConnection = connection;
             using (StreamWriter sw = new StreamWriter(Path.Combine(APP_PATH, _lastConnectionFile), false))
             {
-                sw.WriteLine(_lastConnection.Serialize());
+                sw.WriteLine(((ISerializable)_lastConnection).Serialize());
             }
         }
         public Connection ReadMostRecentConnection()
@@ -307,24 +309,30 @@ namespace NetworkingLibrary
             return mostRecentConnection ?? new();
 
         }
+        private void RunTest(ref bool result, ISerializable serializable) { result = result && serializable.Test(); }
         public bool TestSerialization(bool log, bool result = true)
         {
             try
             {
                 bool allPassed = true;
-                allPassed = User.Test(log) && allPassed;
-                allPassed = Connection.Test(log) && allPassed;
-
-                allPassed = SendDataEvent.Test(log) && allPassed;
-                allPassed = ReceiveDataEvent.Test(log) && allPassed;
-
-                allPassed = CommandEvent.Test(log) && allPassed;
-
-                allPassed = ServerStartEvent.Test(log) && allPassed;
-                allPassed = ServerEndEvent.Test(log) && allPassed;
-
-                allPassed = ClientJoinEvent.Test(log) && allPassed;
-                allPassed = ClientLeaveEvent.Test(log) && allPassed;
+                string testUsername = "Test_User";
+                string testData = "Test Data";
+                foreach (ISerializable testObj in new ISerializable[]
+                {
+                    new User(testUsername),
+                    new Connection(),
+                    new CommandEvent(CommandType.Test, Array.Empty<string>(), testUsername),
+                    new MessageEvent(testData, testUsername),
+                    new SendDataEvent(testData, testUsername),
+                    new ReceiveDataEvent(new SendDataEvent((new MessageEvent(testData, testUsername) as ISerializable).Serialize(), testUsername)),
+                    new ServerStartEvent(GetLocalIP(), _defaultPort, testUsername),
+                    new ServerEndEvent(_localHost, _defaultPort, testUsername),
+                    new ClientJoinEvent(_localHost, _defaultPort, testUsername),
+                    new ClientLeaveEvent(_localHost, _defaultPort, testUsername),
+                })
+                {
+                    RunTest(ref allPassed, testObj);
+                }
 
                 if (result) Log($"All Event Serializations Passed: {allPassed}\n");
                 return allPassed;
@@ -378,7 +386,7 @@ namespace NetworkingLibrary
             _clientConnection.ListenForData();
             SendData();
 
-            NetworkEvents.Instance.ClientJoined(new ClientJoinEvent(host, (int)port, _clientConnection._user));
+            NetworkEvents.Instance.ClientJoined(new ClientJoinEvent(host, (int)port, _clientConnection._user.Username));
 
             _isBusy = false;
         }
@@ -408,7 +416,7 @@ namespace NetworkingLibrary
             _clientConnection.WaitForNewConnections();
             SendData();
 
-            NetworkEvents.Instance.ServerStarted(new ServerStartEvent(host, (int)port, _clientConnection._user));
+            NetworkEvents.Instance.ServerStarted(new ServerStartEvent(host, (int)port, _clientConnection._user.Username));
 
             _isBusy = false;
         }

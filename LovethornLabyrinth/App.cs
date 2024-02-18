@@ -1,9 +1,11 @@
 ﻿using NetworkingLibrary;
 using ConsoleLibrary;
+using EventSystem;
+using EventSystem.Events;
+using EventSystem.Events.NetworkEvents;
 
 namespace LovethornLabyrinth
 {
-    //TODO: Merge the event systems to antoher library that both librarys can use
     internal class App // Game should be a simple maze (with enemies and gold), 5 levels (4x4, 8x8, 12x12, 16x16, 20x20). Each level has a shop, stone door down, and a key (can also buy a key).
     {
         private const string APP_NAME = "NetworkingTest";
@@ -12,6 +14,8 @@ namespace LovethornLabyrinth
         private bool SaveLogs = false;
 
         private int[] ConsoleDimensions = { 120, 30 };
+
+        private bool IsConsole = true;
 
         ConsoleManager consoleManager = ConsoleManager.Instance;
         NetworkManager networkManager = NetworkManager.Instance;
@@ -23,8 +27,30 @@ namespace LovethornLabyrinth
         public void Start()
         {
             InitEvents();
-            consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs, false);
+            consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs, IsConsole);
             networkManager.Init(AppPath);
+
+            if (!IsConsole) InitStartFrame();
+
+            consoleManager.Start();
+        }
+
+        public void InitEvents()
+        {
+            NetworkEvents.Instance.OnLog += SendLogToConsole;
+            NetworkEvents.Instance.OnMessageRecieved.OnEvent += OnMessageRecieved;
+            NetworkEvents.Instance.OnServerStart.OnEvent += OnServerStart;
+            NetworkEvents.Instance.OnServerEnd.OnEvent += OnServerEnd;
+
+            ConsoleEvents.Instance.OnMessageSend.OnEvent += OnSendMessage;
+            ConsoleEvents.Instance.OnCommandSend.OnEvent += OnSendCommand;
+        }
+        #endregion
+
+        #region Helper Functions
+        private void Log(string message) { ConsoleManager.Log(message); }
+        private void InitStartFrame()
+        {
             consoleManager.CoverScreen();
 
             PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
@@ -39,78 +65,42 @@ namespace LovethornLabyrinth
                 new ConsoleString("Labyrinth", ConsoleColor.DarkYellow),
             });
 
-            StringFrame WelcomeFrame2 = WelcomeFrame.DeepCopy();
-             
-            WelcomeFrame2.PushEmpty();
-            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-            WelcomeFrame2.PushCenter(new ConsoleString("This is a test."));
-
-            WelcomeFrame2.Move(59);
-            
-            priorityFrame.Push(WelcomeFrame2, 2);
-
-            StringFrame TestFrame = new(50, 0, 30, 20, true);
-            for(int i = 0; i < 18; i++)
-                TestFrame.PushCenter(new ConsoleString("This is a Test Frame", ConsoleColor.Yellow));
-
-            priorityFrame.Push(TestFrame, 1);
-
             priorityFrame.Push(WelcomeFrame);
             StringFrame? ColorInfo = consoleManager.ColorInfo();
-            if(ColorInfo != null) priorityFrame.Push(ColorInfo);
+            if (ColorInfo != null) priorityFrame.Push(ColorInfo);
 
             consoleManager.SetFrame(priorityFrame);
-            consoleManager.Start();
         }
-
-        public void InitEvents()
-        {
-            NetworkEvents.Instance.OnLog += SendLogToConsole;
-            NetworkEvents.Instance.OnMessageRecieved.OnEvent += OnMessageRecieved;
-            NetworkEvents.Instance.OnServerStart.OnEvent += OnServerStart;
-            NetworkEvents.Instance.OnServerEnd.OnEvent += OnServerEnd;
-
-            ConsoleEvents.Instance.OnSendMessage.OnEvent += OnSendMessage;
-            ConsoleEvents.Instance.OnSendCommand.OnEvent += OnSendCommand;
-        }
-        #endregion
-
-        #region Helper Functions
-        private void Log(string message) { ConsoleManager.Log(message); }
         #endregion
 
         #region Event Links
         private void SendLogToConsole(object? sender, string message) { Log(message); }
-        private void OnMessageRecieved(object? sender, NetworkingLibrary.BaseEventArgs e)
+        private void OnMessageRecieved(object? sender, BaseEventArgs e)
         {
-            NetworkingLibrary.MessageEvent messageEvent = (NetworkingLibrary.MessageEvent)e;
-            Log($"{messageEvent.User}: {messageEvent.Message}");
+            MessageEvent messageEvent = (MessageEvent)e;
+            Log($"{messageEvent.Username}: {messageEvent.Message}");
         }
-        private void OnServerStart(object? sender, NetworkingLibrary.BaseEventArgs e)
+        private void OnServerStart(object? sender, BaseEventArgs e)
         {
             ServerStartEvent serverEvent = (ServerStartEvent)e;
             Log("Server Started");
         }
-        private void OnServerEnd(object? sender, NetworkingLibrary.BaseEventArgs e)
+        private void OnServerEnd(object? sender, BaseEventArgs e)
         {
             ServerEndEvent serverEvent = (ServerEndEvent)e;
             Log("Server Ended");
         }
-        private void OnSendCommand(object? sender, ConsoleLibrary.BaseEventArgs e)
+        private void OnSendCommand(object? sender, BaseEventArgs e)
         {
-            ConsoleLibrary.CommandEvent commandEvent = (ConsoleLibrary.CommandEvent)e;
-            NetworkEvents.Instance.CommandRecieved(new NetworkingLibrary.CommandEvent((NetworkingLibrary.CommandType)commandEvent.command, commandEvent.args, new User(commandEvent._user)));
+            CommandEvent commandEvent = (CommandEvent)e;
+            NetworkEvents.Instance.CommandRecieved(new CommandEvent(commandEvent.Command, commandEvent.Args, commandEvent.Username));
         }
 
-        private void OnSendMessage(object? sender, ConsoleLibrary.BaseEventArgs e)
+        private void OnSendMessage(object? sender, BaseEventArgs e)
         {
-            ConsoleLibrary.MessageEvent conMessageEvent = (ConsoleLibrary.MessageEvent)e;
-            NetworkingLibrary.MessageEvent netMessageEvent = new NetworkingLibrary.MessageEvent(conMessageEvent.message, NetworkManager.Instance._clientConnection._user);
-            NetworkManager.Instance.AddDataToSend(new SendDataEvent(netMessageEvent.Serialize(), netMessageEvent.User));
+            MessageEvent conMessageEvent = (MessageEvent)e;
+            MessageEvent netMessageEvent = new MessageEvent(conMessageEvent.Message, NetworkManager.Instance._clientConnection._user.Username);
+            NetworkManager.Instance.AddDataToSend(new SendDataEvent(((ISerializable) netMessageEvent).Serialize(), netMessageEvent.Username));
         }
         #endregion
     }

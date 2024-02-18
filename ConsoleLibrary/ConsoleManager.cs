@@ -1,10 +1,11 @@
-﻿using System.Runtime.InteropServices;
+﻿using EventSystem;
+using System.Runtime.InteropServices;
 
 namespace ConsoleLibrary
 {
     public class ConsoleManager
     {
-        public static ConsoleManager Instance = new();
+        public static ConsoleManager Instance { get; private set; } = new();
         public static bool IsConsole = true;
         public ConsoleManager() { }
 
@@ -209,7 +210,7 @@ namespace ConsoleLibrary
         {
             while (_running)
             {
-                if (!HandleInput()) Thread.Sleep(_delta);//await Task.Delay(_delta);
+                if (!HandleInput()) Thread.Sleep(_delta);
             }
         }
         public bool HandleInput()
@@ -225,7 +226,7 @@ namespace ConsoleLibrary
 
             Console.Write(GetStamp());
             string? msg = Console.ReadLine();
-            if (String.IsNullOrEmpty(msg)) return false;
+            if (string.IsNullOrEmpty(msg)) return false;
 
             if (msg[0] == _commandChar)
                 ProcessCommand(msg.ToLower().Substring(1));
@@ -279,7 +280,7 @@ namespace ConsoleLibrary
                     type = CommandType.Quit;
                     break;
             }
-            ConsoleEvents.Instance.SendCommand(new CommandEvent(type, args[1..]));
+            ConsoleEvents.Instance.SendCommand(type, args[1..]);
         }
         #endregion
 
