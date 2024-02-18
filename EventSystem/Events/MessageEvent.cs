@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace EventSystem.Events
+﻿namespace EventSystem.Events
 {
     public class MessageEvent : BaseEventArgs
     {
@@ -8,19 +6,6 @@ namespace EventSystem.Events
         public MessageEvent(string message, string username) : base(EventType.Message, username)
         {
             Message = message;
-        }
-        public static new bool Test(bool log = false)
-        {
-            try
-            {
-                string json = new MessageEvent("Test Message", "Test_User").Serialize();
-                MessageEvent? testMessageEvent = JsonSerializer.Deserialize<MessageEvent>(json);
-                return testMessageEvent != null;
-            }
-            catch (Exception e)
-            {
-                return false;
-            }
         }
     }
 }

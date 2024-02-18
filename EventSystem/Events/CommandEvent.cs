@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace EventSystem.Events
+﻿namespace EventSystem.Events
 {
     public class CommandEvent : BaseEventArgs
     {
@@ -11,20 +9,6 @@ namespace EventSystem.Events
         {
             Command = command;
             Args = args;
-        }
-
-        public static new bool Test(bool log = false)
-        {
-            try
-            {
-                string json = new CommandEvent(CommandType.Test, Array.Empty<string>(), "Test_User").Serialize();
-                CommandEvent? testCommandEvent = JsonSerializer.Deserialize<CommandEvent>(json);
-                return testCommandEvent != null;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }

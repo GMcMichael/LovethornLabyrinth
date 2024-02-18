@@ -98,7 +98,7 @@ namespace LovethornLabyrinth
         {
             MessageEvent conMessageEvent = (MessageEvent)e;
             MessageEvent netMessageEvent = new MessageEvent(conMessageEvent.Message, NetworkManager.Instance._clientConnection._user.Username);
-            NetworkManager.Instance.AddDataToSend(new SendDataEvent(netMessageEvent.Serialize(), netMessageEvent.Username));
+            NetworkManager.Instance.AddDataToSend(new SendDataEvent(((ISerializable) netMessageEvent).Serialize(), netMessageEvent.Username));
         }
         #endregion
     }

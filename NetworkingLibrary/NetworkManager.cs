@@ -61,7 +61,7 @@ namespace NetworkingLibrary
                 if (_hosting) CheckClientList();
                 Task.Run(async () =>
                 {
-                    string message = dataEvent.Serialize() + _endOfData;
+                    string message = ((ISerializable)dataEvent).Serialize() + _endOfData;
                     //Log($"Sending data: {message}");
                     var messageBytes = Encoding.UTF8.GetBytes(message);
                     if (_connected)
@@ -91,7 +91,7 @@ namespace NetworkingLibrary
                         {
                             if (!client._user.Equals(messageEvent.Username))
                             {
-                                SendDataEvent dataEvent = new SendDataEvent(messageEvent.Serialize(), messageEvent.Username);
+                                SendDataEvent dataEvent = new SendDataEvent(((ISerializable) messageEvent).Serialize(), messageEvent.Username);
                                 NetworkEvents.Instance.SendData(dataEvent);
                             }
                         });
@@ -251,7 +251,7 @@ namespace NetworkingLibrary
             using (StreamWriter sw = new StreamWriter(Path.Combine(APP_PATH, _userFileName), false))
             {
                 foreach (User user in savingUsers)
-                    sw.WriteLine(user.Serialize());
+                    sw.WriteLine(((ISerializable) user).Serialize());
             }
         }
         public User[] ReadUsers()
@@ -287,7 +287,7 @@ namespace NetworkingLibrary
             _lastConnection = connection;
             using (StreamWriter sw = new StreamWriter(Path.Combine(APP_PATH, _lastConnectionFile), false))
             {
-                sw.WriteLine(_lastConnection.Serialize());
+                sw.WriteLine(((ISerializable)_lastConnection).Serialize());
             }
         }
         public Connection ReadMostRecentConnection()
@@ -309,25 +309,30 @@ namespace NetworkingLibrary
             return mostRecentConnection ?? new();
 
         }
+        private void RunTest(ref bool result, ISerializable serializable) { result = result && serializable.Test(); }
         public bool TestSerialization(bool log, bool result = true)
         {
             try
             {
                 bool allPassed = true;
-                allPassed = User.Test(log) && allPassed;
-                allPassed = Connection.Test(log) && allPassed;
-
-                allPassed = SendDataEvent.Test(log) && allPassed;
-                allPassed = ReceiveDataEvent.Test(log) && allPassed;
-
-                allPassed = CommandEvent.Test(log) && allPassed;
-                allPassed = MessageEvent.Test(log) && allPassed;
-
-                allPassed = ServerStartEvent.Test(log) && allPassed;
-                allPassed = ServerEndEvent.Test(log) && allPassed;
-
-                allPassed = ClientJoinEvent.Test(log) && allPassed;
-                allPassed = ClientLeaveEvent.Test(log) && allPassed;
+                string testUsername = "Test_User";
+                string testData = "Test Data";
+                foreach (ISerializable testObj in new ISerializable[]
+                {
+                    new User(testUsername),
+                    new Connection(),
+                    new CommandEvent(CommandType.Test, Array.Empty<string>(), testUsername),
+                    new MessageEvent(testData, testUsername),
+                    new SendDataEvent(testData, testUsername),
+                    new ReceiveDataEvent(new SendDataEvent((new MessageEvent(testData, testUsername) as ISerializable).Serialize(), testUsername)),
+                    new ServerStartEvent(GetLocalIP(), _defaultPort, testUsername),
+                    new ServerEndEvent(_localHost, _defaultPort, testUsername),
+                    new ClientJoinEvent(_localHost, _defaultPort, testUsername),
+                    new ClientLeaveEvent(_localHost, _defaultPort, testUsername),
+                })
+                {
+                    RunTest(ref allPassed, testObj);
+                }
 
                 if (result) Log($"All Event Serializations Passed: {allPassed}\n");
                 return allPassed;
