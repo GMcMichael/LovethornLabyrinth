@@ -2,6 +2,7 @@
 using ConsoleLibrary;
 using EventSystem;
 using EventSystem.Events;
+using EventSystem.Events.NetworkEvents;
 
 namespace LovethornLabyrinth
 {
@@ -14,6 +15,8 @@ namespace LovethornLabyrinth
 
         private int[] ConsoleDimensions = { 120, 30 };
 
+        private bool IsConsole = true;
+
         ConsoleManager consoleManager = ConsoleManager.Instance;
         NetworkManager networkManager = NetworkManager.Instance;
         //GameManager gameManager = GameManager.Instance;
@@ -24,33 +27,10 @@ namespace LovethornLabyrinth
         public void Start()
         {
             InitEvents();
-            consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs, false);
+            consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs, IsConsole);
             networkManager.Init(AppPath);
 
-
-
-            consoleManager.CoverScreen();
-            
-            PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
-            
-            StringFrame WelcomeFrame = new(0, 0, ConsoleDimensions[0] / 2, ConsoleDimensions[1], true);
-            
-            WelcomeFrame.PushEmpty();
-            WelcomeFrame.PushCenter(new ConsoleString[]
-            {
-                new ConsoleString("Welcome to "),
-                new ConsoleString("Lovethorn ", ConsoleColor.Magenta),
-                new ConsoleString("Labyrinth", ConsoleColor.DarkYellow),
-            });
-            
-            priorityFrame.Push(WelcomeFrame);
-            StringFrame? ColorInfo = consoleManager.ColorInfo();
-            if(ColorInfo != null) priorityFrame.Push(ColorInfo);
-            
-            consoleManager.SetFrame(priorityFrame);
-
-
-
+            if (!IsConsole) InitStartFrame();
 
             consoleManager.Start();
         }
@@ -69,6 +49,28 @@ namespace LovethornLabyrinth
 
         #region Helper Functions
         private void Log(string message) { ConsoleManager.Log(message); }
+        private void InitStartFrame()
+        {
+            consoleManager.CoverScreen();
+
+            PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
+
+            StringFrame WelcomeFrame = new(0, 0, ConsoleDimensions[0] / 2, ConsoleDimensions[1], true);
+
+            WelcomeFrame.PushEmpty();
+            WelcomeFrame.PushCenter(new ConsoleString[]
+            {
+                new ConsoleString("Welcome to "),
+                new ConsoleString("Lovethorn ", ConsoleColor.Magenta),
+                new ConsoleString("Labyrinth", ConsoleColor.DarkYellow),
+            });
+
+            priorityFrame.Push(WelcomeFrame);
+            StringFrame? ColorInfo = consoleManager.ColorInfo();
+            if (ColorInfo != null) priorityFrame.Push(ColorInfo);
+
+            consoleManager.SetFrame(priorityFrame);
+        }
         #endregion
 
         #region Event Links

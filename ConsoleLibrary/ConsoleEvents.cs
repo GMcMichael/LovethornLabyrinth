@@ -9,9 +9,7 @@ namespace ConsoleLibrary
         public const string username = "Console";
         public ConsoleEvents() { }
 
-        #region Event Raising
          public void SendMessage(string _message) { SendMessage(new MessageEvent(_message, username)); }
          public void SendCommand(CommandType commandType, string[] args) { SendCommand(new CommandEvent(commandType, args, username)); }
-        #endregion
     }
 }

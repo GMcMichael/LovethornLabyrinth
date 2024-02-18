@@ -2,7 +2,7 @@
 {
     public class User : IEquatable<User>, EventSystem.ISerializable
     {
-        public const string defaultName = "Default_User";
+        public const string defaultName = EventSystem.BaseEventSystem.DEFAULT_USERNAME;
         public string Username { get; set; }
         public User(string username = defaultName) { Username = username; }
 

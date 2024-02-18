@@ -210,7 +210,7 @@ namespace ConsoleLibrary
         {
             while (_running)
             {
-                if (!HandleInput()) Thread.Sleep(_delta);//await Task.Delay(_delta);
+                if (!HandleInput()) Thread.Sleep(_delta);
             }
         }
         public bool HandleInput()

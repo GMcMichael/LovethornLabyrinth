@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text;
 using EventSystem;
 using EventSystem.Events;
+using EventSystem.Events.NetworkEvents;
 
 namespace NetworkingLibrary
 {
@@ -47,7 +48,7 @@ namespace NetworkingLibrary
         #region Event Callbacks
         public void InitEventCallbacks()
         {
-            NetworkEvents.Instance.OnSendData.OnEvent += OnSendData;
+            NetworkEvents.Instance.OnDataSend.OnEvent += OnSendData;
             NetworkEvents.Instance.OnDataReceived.OnEvent += OnDataReceived;
             NetworkEvents.Instance.OnCommandRecieved.OnEvent += OnCommandRecieved;
             NetworkEvents.Instance.OnClientJoin.OnEvent += OnClientJoin;
@@ -62,7 +63,6 @@ namespace NetworkingLibrary
                 Task.Run(async () =>
                 {
                     string message = ((ISerializable)dataEvent).Serialize() + _endOfData;
-                    //Log($"Sending data: {message}");
                     var messageBytes = Encoding.UTF8.GetBytes(message);
                     if (_connected)
                         await _clientConnection._socket.SendAsync(messageBytes);
@@ -122,12 +122,12 @@ namespace NetworkingLibrary
                             conn.CloseConnection();
                         }
                         _hostClientConnections.Clear();
-                        NetworkEvents.Instance.ServerEnded(new ServerEndEvent(_clientConnection._socket.LocalEndPoint, _clientConnection._user)); ;
+                        NetworkEvents.Instance.ServerEnded(new ServerEndEvent(_clientConnection._socket.LocalEndPoint, _clientConnection._user.Username)); ;
                     }
                     if (_connected)
                     {
                         _connected = false;// check to see if this is set after the event
-                        NetworkEvents.Instance.ClientLeft(new ClientLeaveEvent(_clientConnection._socket.RemoteEndPoint, _clientConnection._user));
+                        NetworkEvents.Instance.ClientLeft(new ClientLeaveEvent(_clientConnection._socket.RemoteEndPoint, _clientConnection._user.Username));
                     }
                     _clientConnection.Reset();
                     break;
