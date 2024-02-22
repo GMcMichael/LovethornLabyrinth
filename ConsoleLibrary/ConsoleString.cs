@@ -19,6 +19,7 @@ namespace ConsoleLibrary
         }
 
         public ConsoleString DeepCopy() { return new(Data, TextColor, BackColor); }
+        public ConsoleString SubString(int startIndex, int length) { return new(Data.Substring(startIndex, length), TextColor, BackColor); }
         private bool CheckBounds((int, int) pos)
         {
             (int, int) displaySize = ConsoleManager.Instance._displaySize;

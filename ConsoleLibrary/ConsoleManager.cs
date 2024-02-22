@@ -55,6 +55,7 @@ namespace ConsoleLibrary
         private FrameBase? _frame;
         private StringFrame? ColorInfoFrame;
         private StringFrame? CoverFrame;
+        private MenuFrame? focusedMenu;
         #endregion
 
         #region Log Functions
@@ -170,7 +171,7 @@ namespace ConsoleLibrary
             CoverFrame = new(0, 0, width, height);
 
             for (int i = 0; i < height; i++)
-                CoverFrame.Push(ConsoleRow.Fill(width, '!', ConsoleColor.Red));
+                CoverFrame.Push(ConsoleRow.Fill(width, '░', ConsoleColor.Red));
         }
         public void CoverScreen() { CoverFrame?.Render(null); }
         #endregion
@@ -181,6 +182,7 @@ namespace ConsoleLibrary
             Console.CursorVisible = false;
             while(_running)
             {
+                HandleDisplayInput();
                 RenderLoop();
                 Thread.Sleep(_delta);
             }
@@ -201,8 +203,18 @@ namespace ConsoleLibrary
             for (int i = 0; i < _displaySize.Item2; i++)
                 Console.Write(row);
         }
+        public void SetMenu(MenuFrame menu) { focusedMenu = menu; }
         public void SetFrame(FrameBase frame) { _frame = frame; }
         public StringFrame? ColorInfo() { return ColorInfoFrame; }
+        private void HandleDisplayInput()// this should be done in another thread and event based
+        {
+            if (!Console.KeyAvailable) return;
+
+            if (Console.ReadKey(true).Key == ConsoleKey.RightArrow)
+                focusedMenu?.MoveSelection(1);
+            if(Console.ReadKey(true).Key == ConsoleKey.LeftArrow)
+                focusedMenu?.MoveSelection(-1);
+        }
         #endregion
 
         #region Console Functions

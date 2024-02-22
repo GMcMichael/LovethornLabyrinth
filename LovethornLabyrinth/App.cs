@@ -6,7 +6,7 @@ using EventSystem.Events.NetworkEvents;
 
 namespace LovethornLabyrinth
 {
-    internal class App // Game should be a simple maze (with enemies and gold), 5 levels (4x4, 8x8, 12x12, 16x16, 20x20). Each level has a shop, stone door down, and a key (can also buy a key).
+    internal class App
     {
         private const string APP_NAME = "NetworkingTest";
         private string AppPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), APP_NAME);
@@ -15,10 +15,11 @@ namespace LovethornLabyrinth
 
         private int[] ConsoleDimensions = { 120, 30 };
 
-        private bool IsConsole = true;
+        private bool IsConsole = false;
 
         ConsoleManager consoleManager = ConsoleManager.Instance;
         NetworkManager networkManager = NetworkManager.Instance;
+        // Game should be a simple maze (with enemies and gold), 5 levels (4x4, 8x8, 12x12, 16x16, 20x20). Each level has a shop, stone door down, and a key (can also buy a key).
         //GameManager gameManager = GameManager.Instance;
 
         public App() { Directory.CreateDirectory(AppPath); }
@@ -50,6 +51,39 @@ namespace LovethornLabyrinth
         #region Helper Functions
         private void Log(string message) { ConsoleManager.Log(message); }
         private void InitStartFrame()
+        {
+            consoleManager.CoverScreen();
+
+            PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
+
+            StringFrame WelcomeText = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
+            WelcomeText.PushEmpty(3);
+            WelcomeText.PushCenter(new ConsoleString[]
+            {
+                new("Select a mode:"),
+            });
+
+            int menuWidth = 50;
+            int menuX = (ConsoleDimensions[0] - menuWidth) / 2;
+            int menuY = ConsoleDimensions[1] - (ConsoleDimensions[1] / 3);
+            MenuFrame menuFrame = new(new MenuOption[]
+            {
+                new(new("Console")),
+                new(new("Display")),
+                new(new("Settings")),
+                new(new("Another")),
+                new(new("Another2")),
+                new(new("Another3")),
+                new(new("Quit")),
+            }, true, true, menuX, menuY, menuWidth, 1);
+
+            priorityFrame.Push(menuFrame, -1);
+            priorityFrame.Push(WelcomeText);
+
+            consoleManager.SetMenu(menuFrame);
+            consoleManager.SetFrame(priorityFrame);
+        }
+        private void InitLovethornFrame()
         {
             consoleManager.CoverScreen();
 
