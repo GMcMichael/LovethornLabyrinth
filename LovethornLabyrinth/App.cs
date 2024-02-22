@@ -66,15 +66,16 @@ namespace LovethornLabyrinth
             int menuWidth = 50;
             int menuX = (ConsoleDimensions[0] - menuWidth) / 2;
             int menuY = ConsoleDimensions[1] - (ConsoleDimensions[1] / 3);
+            Action emptyAction = () => { };
             MenuFrame menuFrame = new(new MenuOption[]
             {
-                new(new("Console")),
-                new(new("Display")),
-                new(new("Settings")),
-                new(new("Another")),
-                new(new("Another2")),
-                new(new("Another3")),
-                new(new("Quit")),
+                new(new("Console"), emptyAction),
+                new(new("Display"), emptyAction),
+                new(new("Settings"), emptyAction),
+                new(new("Another"), emptyAction),
+                new(new("Another2"), emptyAction),
+                new(new("Another3"), emptyAction),
+                new(new("Quit"), () => { consoleManager._running = false; }),
             }, true, true, menuX, menuY, menuWidth, 1);
 
             priorityFrame.Push(menuFrame, -1);

@@ -1,23 +1,20 @@
-﻿using System.Collections.Generic;
-
-namespace ConsoleLibrary
+﻿namespace ConsoleLibrary
 {
     public class MenuOption
     {
         public ConsoleString Text;
+        private Action _action;
         private int lastDepth = 0;
         public int LastDepth { get { return lastDepth; } }
         public int Length => Text.Length;
         public int Remaning => Length - lastDepth;
-        public MenuOption(ConsoleString text)
+        public MenuOption(ConsoleString text, Action action)
         {
             Text = text;
+            _action = action;
         }
-
-        public ConsoleString GetRemaining()
-        {
-            return Text.SubString(lastDepth, Remaning);
-        }
+        public void Select() { _action(); }
+        public ConsoleString GetRemaining() => Text.SubString(lastDepth, Remaning);
 
         private int BackAdd(ref int head, List<ConsoleString> list, ConsoleString consoleString) {
             if (head <= 0) return 0;

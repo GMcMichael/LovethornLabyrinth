@@ -1,9 +1,7 @@
-﻿using System.Threading.Tasks;
-
-namespace ConsoleLibrary
+﻿namespace ConsoleLibrary
 {
     public class MenuFrame : FrameBase // should have row/column orientation
-    {// this will be just added to priority frames as needed
+    {
         private bool isFocused = false;
         private int currOption = 0;
         private MenuOption[] Options;
@@ -23,6 +21,7 @@ namespace ConsoleLibrary
             RowMode = rowMode;
             Wraps = wraps;
         }
+        public void SetFocus(bool focus) { isFocused= focus; }
         public void SetSelection(int selection)
         {
             currOption = Math.Min(selection, Options.Length - 1);
@@ -33,36 +32,7 @@ namespace ConsoleLibrary
             if(currOption < 0) currOption = Options.Length - 1;
             else currOption %= Options.Length;
         }
-
-        private List<ConsoleString> AttemptBack(ref int head, ConsoleString[] consoleStrings)
-        {
-            List<ConsoleString> results = new List<ConsoleString>();
-            for (int i = 0; i < consoleStrings.Length; i++)
-            {
-                int len = consoleStrings[i].Length;
-                int dist = Math.Min(head, len);
-                head -= dist;
-
-                results.Add(dist < len ? consoleStrings[i].SubString(len - dist, dist) : consoleStrings[i]);
-            }
-
-            return results;
-        }
-        private List<ConsoleString> AttemptForward(int tail, ConsoleString[] consoleStrings)
-        {
-            List<ConsoleString> results = new List<ConsoleString>();
-            for (int i = 0; i < consoleStrings.Length; i++)
-            {
-                int len = consoleStrings[i].Length;
-                int dist = Math.Min(Width - tail, len);
-                tail += dist;
-                results.Add(dist < len ? consoleStrings[i].SubString(0, dist) : consoleStrings[i]);
-                if (tail >= Width) break;
-                
-            }
-
-            return results;
-        }
+        public void Select() => Options[currOption].Select();
         private void DrawBuffer(ref int tail, FrameMask? mask, List<ConsoleString> buffer) {
             int localTail = tail;
             buffer.ForEach(str => {
@@ -94,7 +64,8 @@ namespace ConsoleLibrary
                 if(buffer.Count > 0) DrawBuffer(ref tail, mask, buffer);
 
                 //try draw hovered
-                DrawBuffer(ref tail, mask, Options[currOption].AttemptForward(tail, Width, rightSelector, leftSelector, 1, hoveredTextColor, hoveredBackColor));
+                if (isFocused) DrawBuffer(ref tail, mask, Options[currOption].AttemptForward(tail, Width, rightSelector, leftSelector, 1, hoveredTextColor, hoveredBackColor));
+                else DrawBuffer(ref tail, mask, Options[currOption].AttemptForward(tail, Width, rowPadding, rowPadding));
                 
                 //until at width or last option
                 while(optionTail < Options.Length - 1)
@@ -136,7 +107,7 @@ namespace ConsoleLibrary
             }
             else // multiple rows one column
             {
-                
+                //should be easier than above, each row has 1 option, just go to start of row and attempt forward
             }
         }
 

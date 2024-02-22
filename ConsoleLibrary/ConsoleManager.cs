@@ -180,11 +180,10 @@ namespace ConsoleLibrary
         private void StartDisplay()
         {
             Console.CursorVisible = false;
-            while(_running)
+            SetupDisplayInput();
+            while (_running)
             {
-                HandleDisplayInput();
                 RenderLoop();
-                Thread.Sleep(_delta);
             }
             Console.CursorVisible = true;
         }
@@ -203,17 +202,34 @@ namespace ConsoleLibrary
             for (int i = 0; i < _displaySize.Item2; i++)
                 Console.Write(row);
         }
-        public void SetMenu(MenuFrame menu) { focusedMenu = menu; }
+        public void SetMenu(MenuFrame menu) { focusedMenu?.SetFocus(false); focusedMenu = menu; focusedMenu?.SetFocus(true); }
         public void SetFrame(FrameBase frame) { _frame = frame; }
         public StringFrame? ColorInfo() { return ColorInfoFrame; }
-        private void HandleDisplayInput()// this should be done in another thread and event based
+        private void SetupDisplayInput()// should this be event based and for all of the console manager input
         {
-            if (!Console.KeyAvailable) return;
+            Task.Run(async () =>
+            {
+                while (_running)
+                {
+                    if (!Console.KeyAvailable) { await Task.Yield(); continue; }
 
-            if (Console.ReadKey(true).Key == ConsoleKey.RightArrow)
-                focusedMenu?.MoveSelection(1);
-            if(Console.ReadKey(true).Key == ConsoleKey.LeftArrow)
-                focusedMenu?.MoveSelection(-1);
+                    switch(Console.ReadKey(true).Key)
+                    {
+                        case ConsoleKey.Enter:
+                            focusedMenu?.Select();
+                            break;
+                        case ConsoleKey.RightArrow:
+                            focusedMenu?.MoveSelection(1);
+                            break;
+                        case ConsoleKey.LeftArrow:
+                            focusedMenu?.MoveSelection(-1);
+                            break;
+                        default:
+                            break;
+                    }
+                        
+                }
+            });
         }
         #endregion
 
