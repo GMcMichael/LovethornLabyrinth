@@ -58,7 +58,7 @@ namespace LovethornLabyrinth
             WelcomeText.PushEmpty(3);
             WelcomeText.PushCenter(new ConsoleString[]
             {
-                new("Select a mode:"),
+                new("Select an option:"),
             });
 
             int menuWidth = 50;
@@ -67,13 +67,9 @@ namespace LovethornLabyrinth
             Action emptyAction = () => { };
             MenuFrame menuFrame = new(new MenuOption[]
             {
-                new(new("Console"), emptyAction),
-                new(new("Display"), emptyAction),
-                new(new("Settings"), emptyAction),
-                new(new("Another"), emptyAction),
-                new(new("Another2"), emptyAction),
-                new(new("Another3"), emptyAction),
-                new(new("Quit"), () => { consoleManager._running = false; }),
+                new(new("Start"), emptyAction),
+                new(new("Change Name"), emptyAction),// add a pop up frame and change the name (maybe an inputframe instead of a menu frame)
+                new(new("Quit"), () => { consoleManager._running = false; ConsoleEvents.Instance.SendCommand(new(CommandType.Quit)); }),
             }, true, true, menuX, menuY, menuWidth, 1);
 
             priorityFrame.Push(menuFrame, -1);
@@ -125,15 +121,13 @@ namespace LovethornLabyrinth
         }
         private void OnSendCommand(object? sender, BaseEventArgs e)
         {
-            CommandEvent commandEvent = (CommandEvent)e;
-            NetworkEvents.Instance.CommandRecieved(new CommandEvent(commandEvent.Command, commandEvent.Args, commandEvent.Username));
+            NetworkEvents.Instance.CommandRecieved((CommandEvent)e);
         }
 
         private void OnSendMessage(object? sender, BaseEventArgs e)
         {
-            MessageEvent conMessageEvent = (MessageEvent)e;
-            MessageEvent netMessageEvent = new MessageEvent(conMessageEvent.Message, NetworkManager.Instance._clientConnection._user.Username);
-            NetworkManager.Instance.AddDataToSend(new SendDataEvent(((ISerializable) netMessageEvent).Serialize(), netMessageEvent.Username));
+            e.Username = NetworkManager.Instance._clientConnection._user.Username;
+            NetworkManager.Instance.AddDataToSend(new SendDataEvent(((ISerializable) e).Serialize(), e.Username));
         }
         #endregion
     }

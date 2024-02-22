@@ -78,6 +78,8 @@ namespace ConsoleLibrary
         #region Main Functions
         public void Init(int[] size, string AppPath, bool saveLogs = false)
         {
+            Console.CursorVisible = false;
+
             InitLog(AppPath, saveLogs);
             SetSize(size);
             InitColorFrame((size[0] / 2) + 4, 5, 16, 24, true);
@@ -91,6 +93,13 @@ namespace ConsoleLibrary
             _running = true;
             SetMouseInput(false);
 
+            SetupInput();
+            RunDisplay();
+
+            SetMouseInput(true);
+        }
+        private void SetupInput()
+        {
             Task.Run(async () =>
             {
                 while (_running)
@@ -99,28 +108,28 @@ namespace ConsoleLibrary
                     ConsoleEvents.Instance.KeyPressed(Console.ReadKey(true).Key);
                 }
             });
-
-            StartDisplay();
-
-            SetMouseInput(true);
         }
-
         private void OnKeyPressed(object? sender, ConsoleKey e)
         {
+            bool horizontal = true;
+            int moves = 1;
             switch (e)
             {
                 case ConsoleKey.Enter:
                     focusedMenu?.Select();
                     break;
-                case ConsoleKey.RightArrow:
-                    focusedMenu?.MoveSelection(1);
-                    break;
-                case ConsoleKey.LeftArrow:
-                    focusedMenu?.MoveSelection(-1);
-                    break;
-                case ConsoleKey.UpArrow:
-                    break;
                 case ConsoleKey.DownArrow:
+                    horizontal = false;
+                    goto case ConsoleKey.RightArrow;
+                case ConsoleKey.UpArrow:
+                    horizontal = false;
+                    goto case ConsoleKey.LeftArrow;
+                case ConsoleKey.LeftArrow:
+                    moves = -1;
+                    goto case ConsoleKey.RightArrow;
+                case ConsoleKey.RightArrow:
+                    if (!TryMoveFrames(horizontal, moves))
+                        focusedMenu?.MoveSelection(moves);
                     break;
                 default:
                     break;
@@ -129,29 +138,12 @@ namespace ConsoleLibrary
         #endregion
 
         #region Helper Functions
-        public string HelpInfo()
+        private bool TryMoveFrames(bool horizontal, int moves)
         {
-            return "Command Prefix: '" + _commandChar + @"'
-             Commands:
-                 help - show this text
-                 [u]ser (name) - sets display username
-                 [h]ost (ip) (socket) - host on the specified ip and socket
-                 [c]onnect (ip) (socket) - connect to specified ip and socket
-                 [q]uit - exit the console
-                 ";
-        }
-        public static void Clear() { Console.Clear(); }
-        public void Wait()
-        {
-            Console.WriteLine("Press Any Key to Continue...");
-            Console.ReadKey();
-        }
-        public static string GetStamp() { return "[" + DateTime.Now.ToString("hh:mm:ss") + "] - "; }
-        private bool CheckTimer()
-        {
-            bool res = _displayTimer >= _displayDelta;
-            if (res) { _displayTimer = 0; }
-            return res;
+            if(focusedMenu == null || focusedMenu.Aligns(horizontal)) return false;
+            // try and move menus somehow
+            // maybe have a sorted list of all menus on screen
+            return true;
         }
         public string GetFileId() { return DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss"); }
         public void SetSize(int width, int height)
@@ -204,14 +196,12 @@ namespace ConsoleLibrary
         #endregion
 
         #region Display Functions
-        private void StartDisplay()
+        private void RunDisplay()
         {
-            Console.CursorVisible = false;
             while (_running)
             {
                 RenderLoop();
             }
-            Console.CursorVisible = true;
         }
         private void RenderLoop()
         {
@@ -231,85 +221,6 @@ namespace ConsoleLibrary
         public void SetMenu(MenuFrame menu) { focusedMenu?.SetFocus(false); focusedMenu = menu; focusedMenu?.SetFocus(true); }
         public void SetFrame(FrameBase frame) { _frame = frame; }
         public StringFrame? ColorInfo() { return ColorInfoFrame; }
-        #endregion
-
-        #region Console Functions
-        private void StartConsole()
-        {
-            while (_running)
-            {
-                if (!HandleInput()) Thread.Sleep(_delta);
-            }
-        }
-        public bool HandleInput()
-        {
-            _displayTimer += (_updateType == UpdateType.Interval) ? _delta : 0;
-
-            if (!Console.KeyAvailable)
-            {
-                if (CheckTimer())
-                    Log("", false);
-                return false;
-            }
-
-            Console.Write(GetStamp());
-            string? msg = Console.ReadLine();
-            if (string.IsNullOrEmpty(msg)) return false;
-
-            if (msg[0] == _commandChar)
-                ProcessCommand(msg.ToLower().Substring(1));
-
-            else if (msg == "help" || msg == "h")
-                Log(HelpInfo(), false);
-
-            else
-                ConsoleEvents.Instance.SendMessage(msg);
-
-            return true;
-        }
-
-        public void ProcessCommand(string cmd)
-        {
-            string[] args = cmd.Split(' ');
-            if (_debugging) Log("Handling Command: " + cmd, false);
-            if (args[0] == "help")
-            {
-                Log(HelpInfo(), false);
-                return;
-            }
-            CommandType type = CommandType.Host;
-            switch (args[0])
-            {
-                case "t":
-                case "test":
-                    type = CommandType.Test;
-                    break;
-                case "l":
-                case "leave":
-                    type = CommandType.Leave;
-                    break;
-                case "c":
-                case "connect":
-                    type = CommandType.Connect;
-                    break;
-                case "h":
-                case "host":
-                    type = CommandType.Host;
-                    break;
-                case "u":
-                case "user":
-                    type = CommandType.User;
-                    break;
-                default:
-                case "q":
-                case "quit":
-                    _running = false;
-                    Log("Exiting...");
-                    type = CommandType.Quit;
-                    break;
-            }
-            ConsoleEvents.Instance.SendCommand(type, args[1..]);
-        }
         #endregion
 
         #region Stop Mouse Click

@@ -1,6 +1,6 @@
 ﻿namespace ConsoleLibrary
 {
-    public class MenuFrame : FrameBase // should have row/column orientation
+    public class MenuFrame : FrameBase
     {
         private bool isFocused = false;
         private int currOption = 0;
@@ -21,7 +21,8 @@
             RowMode = rowMode;
             Wraps = wraps;
         }
-        public void SetFocus(bool focus) { isFocused= focus; }
+        public bool Aligns(bool horizontal) => RowMode == horizontal;
+        public void SetFocus(bool focus) { isFocused = focus; }
         public void SetSelection(int selection)
         {
             currOption = Math.Min(selection, Options.Length - 1);
@@ -29,7 +30,7 @@
         public void MoveSelection(int moves)
         {
             currOption += moves;
-            if(currOption < 0) currOption = Options.Length - 1;
+            if (currOption < 0) currOption = Options.Length - 1;
             else currOption %= Options.Length;
         }
         public void Select() => Options[currOption].Select();
