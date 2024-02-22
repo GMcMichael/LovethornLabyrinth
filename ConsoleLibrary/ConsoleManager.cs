@@ -6,7 +6,6 @@ namespace ConsoleLibrary
     public class ConsoleManager
     {
         public static ConsoleManager Instance { get; private set; } = new();
-        public static bool IsConsole = true;
         public ConsoleManager() { }
 
         #region Const Variables
@@ -62,7 +61,7 @@ namespace ConsoleLibrary
         public static void Log(string message, bool save = true)
         {
             if (save) Instance.SaveLog(message);
-            if(IsConsole) Console.WriteLine(GetStamp() + message);
+            //if(IsConsole) Console.WriteLine(GetStamp() + message);
         }
         public void InitLog(string AppPath, bool saveLogs = false) { APP_PATH = AppPath; _saveLogs = saveLogs; _currLogFile = GetFileId(); }
         public void SaveLog(string message)
@@ -77,13 +76,14 @@ namespace ConsoleLibrary
         #endregion
 
         #region Main Functions
-        public void Init(int[] size, string AppPath, bool saveLogs = false, bool isConsole = true)
+        public void Init(int[] size, string AppPath, bool saveLogs = false)
         {
-            IsConsole = isConsole;
             InitLog(AppPath, saveLogs);
             SetSize(size);
             InitColorFrame((size[0] / 2) + 4, 5, 16, 24, true);
             InitCoverFrame(size[0], size[1]);
+
+            ConsoleEvents.Instance.OnKeyPressed += OnKeyPressed;
         }
         public void Start()
         {
@@ -91,28 +91,18 @@ namespace ConsoleLibrary
             _running = true;
             SetMouseInput(false);
 
-            SetupInput();
-
-            if(IsConsole)
-                StartConsole();
-            else
-                StartDisplay();
-
-            SetMouseInput(true);
-        }
-        private void SetupInput()
-        {
-            ConsoleEvents.Instance.OnKeyPressed += OnKeyPressed;
-
             Task.Run(async () =>
             {
                 while (_running)
                 {
                     if (!Console.KeyAvailable) { await Task.Yield(); continue; }
-
                     ConsoleEvents.Instance.KeyPressed(Console.ReadKey(true).Key);
                 }
             });
+
+            StartDisplay();
+
+            SetMouseInput(true);
         }
 
         private void OnKeyPressed(object? sender, ConsoleKey e)
@@ -168,8 +158,7 @@ namespace ConsoleLibrary
         {
             Console.SetWindowSize(width, height);
             _displaySize = (width, height);
-            if (!IsConsole)
-                Console.SetBufferSize(width, height);
+            Console.SetBufferSize(width, height);
 
         }
         public void SetSize(int[] size) { if(size.Length >= 2) SetSize(size[0], size[1]); }

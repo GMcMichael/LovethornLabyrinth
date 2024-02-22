@@ -15,8 +15,6 @@ namespace LovethornLabyrinth
 
         private int[] ConsoleDimensions = { 120, 30 };
 
-        private bool IsConsole = false;
-
         ConsoleManager consoleManager = ConsoleManager.Instance;
         NetworkManager networkManager = NetworkManager.Instance;
         // Game should be a simple maze (with enemies and gold), 5 levels (4x4, 8x8, 12x12, 16x16, 20x20). Each level has a shop, stone door down, and a key (can also buy a key).
@@ -28,10 +26,10 @@ namespace LovethornLabyrinth
         public void Start()
         {
             InitEvents();
-            consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs, IsConsole);
+            consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs);
             networkManager.Init(AppPath);
 
-            if (!IsConsole) InitStartFrame();
+            InitStartFrame();
 
             consoleManager.Start();
         }
