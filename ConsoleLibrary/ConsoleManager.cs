@@ -91,12 +91,50 @@ namespace ConsoleLibrary
             _running = true;
             SetMouseInput(false);
 
+            SetupInput();
+
             if(IsConsole)
                 StartConsole();
             else
                 StartDisplay();
 
             SetMouseInput(true);
+        }
+        private void SetupInput()
+        {
+            ConsoleEvents.Instance.OnKeyPressed += OnKeyPressed;
+
+            Task.Run(async () =>
+            {
+                while (_running)
+                {
+                    if (!Console.KeyAvailable) { await Task.Yield(); continue; }
+
+                    ConsoleEvents.Instance.KeyPressed(Console.ReadKey(true).Key);
+                }
+            });
+        }
+
+        private void OnKeyPressed(object? sender, ConsoleKey e)
+        {
+            switch (e)
+            {
+                case ConsoleKey.Enter:
+                    focusedMenu?.Select();
+                    break;
+                case ConsoleKey.RightArrow:
+                    focusedMenu?.MoveSelection(1);
+                    break;
+                case ConsoleKey.LeftArrow:
+                    focusedMenu?.MoveSelection(-1);
+                    break;
+                case ConsoleKey.UpArrow:
+                    break;
+                case ConsoleKey.DownArrow:
+                    break;
+                default:
+                    break;
+            }
         }
         #endregion
 
@@ -180,7 +218,6 @@ namespace ConsoleLibrary
         private void StartDisplay()
         {
             Console.CursorVisible = false;
-            SetupDisplayInput();
             while (_running)
             {
                 RenderLoop();
@@ -205,32 +242,6 @@ namespace ConsoleLibrary
         public void SetMenu(MenuFrame menu) { focusedMenu?.SetFocus(false); focusedMenu = menu; focusedMenu?.SetFocus(true); }
         public void SetFrame(FrameBase frame) { _frame = frame; }
         public StringFrame? ColorInfo() { return ColorInfoFrame; }
-        private void SetupDisplayInput()// should this be event based and for all of the console manager input
-        {
-            Task.Run(async () =>
-            {
-                while (_running)
-                {
-                    if (!Console.KeyAvailable) { await Task.Yield(); continue; }
-
-                    switch(Console.ReadKey(true).Key)
-                    {
-                        case ConsoleKey.Enter:
-                            focusedMenu?.Select();
-                            break;
-                        case ConsoleKey.RightArrow:
-                            focusedMenu?.MoveSelection(1);
-                            break;
-                        case ConsoleKey.LeftArrow:
-                            focusedMenu?.MoveSelection(-1);
-                            break;
-                        default:
-                            break;
-                    }
-                        
-                }
-            });
-        }
         #endregion
 
         #region Console Functions
