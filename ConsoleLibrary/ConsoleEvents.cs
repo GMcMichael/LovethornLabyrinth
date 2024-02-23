@@ -10,9 +10,11 @@ namespace ConsoleLibrary
         public ConsoleEvents() { }
 
         public event EventHandler<ConsoleKey>? OnKeyPressed;
+        public event EventHandler? OnMenuTick;
 
         public void SendMessage(string _message) { SendMessage(new MessageEvent(_message, username)); }
         public void SendCommand(CommandType commandType, string[] args) { SendCommand(new CommandEvent(commandType, args, username)); }
         public void KeyPressed(ConsoleKey consoleKey) { OnKeyPressed?.Invoke(this, consoleKey); }
+        public void TickMenu() { OnMenuTick?.Invoke(this, new()); }
     }
 }

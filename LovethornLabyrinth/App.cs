@@ -66,7 +66,7 @@ namespace LovethornLabyrinth
             int menuY = ConsoleDimensions[1] - (ConsoleDimensions[1] / 3);
             MenuFrame menuFrame = new(new MenuOption[]
             {
-                new(new("Start"), MenuOption.EmptyAction), // go though join / host menu, then end at screen showing chatroom
+                new(new("Start"), MenuOption.EmptyAction), //TODO: go though join / host menu, then end at screen showing chatroom
                 new(new("Change Name"), () =>
                 {
                     MenuFrame nameChange = new(new MenuOption[]
@@ -75,9 +75,10 @@ namespace LovethornLabyrinth
                         {
                             consoleManager.PopMenu();
                         }),
+                        new MenuString("Enter new name...", 20),//pass current username instead
                         new(new("Enter"), () =>
                         {
-                            //update name
+                            //TODO: update name from the menu string text
                             consoleManager.PopMenu();
                         })
                     }, true, false, menuX, menuY - 5, menuWidth, 1);

@@ -79,6 +79,7 @@ namespace ConsoleLibrary
         public void Init(int[] size, string AppPath, bool saveLogs = false)
         {
             Console.CursorVisible = false;
+            Console.TreatControlCAsInput = true;
 
             InitLog(AppPath, saveLogs);
             SetSize(size);
@@ -209,7 +210,7 @@ namespace ConsoleLibrary
             while (_running)
             {
                 RenderLoop();
-                // do stuff for menus ?
+                ConsoleEvents.Instance.TickMenu();
             }
         }
         private void RenderLoop()

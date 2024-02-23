@@ -4,7 +4,7 @@
     {
         public static Action EmptyAction { get; } = () => {};
         public ConsoleString Text;
-        private Action _action;
+        protected Action _action;
         private int lastDepth = 0;
         public int LastDepth { get { return lastDepth; } }
         public int Length => Text.Length;
