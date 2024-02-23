@@ -22,7 +22,7 @@
             Wraps = wraps;
         }
         public bool Aligns(bool horizontal) => RowMode == horizontal;
-        public void SetFocus(bool focus) { isFocused = focus; }
+        public void SetFocus() { isFocused = true; }
         public void SetSelection(int selection)
         {
             currOption = Math.Min(selection, Options.Length - 1);
@@ -110,6 +110,7 @@
             {
                 //should be easier than above, each row has 1 option, just go to start of row and attempt forward
             }
+            isFocused = false;
         }
 
         public override MenuFrame DeepCopy()

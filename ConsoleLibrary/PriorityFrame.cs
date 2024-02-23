@@ -3,10 +3,14 @@
     public class PriorityFrame : FrameBase
     {
         public PriorityQueue<FrameBase, int> PriorityQueue { get; set; } = new();
+        private Dictionary<FrameBase, int> keyValuePairs = new();
+        private int head = 0;
 
         public PriorityFrame(int x, int y, int width, int height, bool border = false) : base(x, y, width, height, border) { }
 
-        public void Push(FrameBase frame, int priority = 0) { PriorityQueue.Enqueue(frame, priority); }
+        public void Push(FrameBase frame, int priority = 0) { PriorityQueue.Enqueue(frame, priority); head = Math.Min(head, priority); }
+        public void PushTop(FrameBase frame) { PriorityQueue.Enqueue(frame, --head); }
+        public void Pop(FrameBase frame) { PriorityQueue = new(PriorityQueue.UnorderedItems.Where(keyValue => { return !keyValue.Element.Equals(frame); })); }
 
         public override void Render(FrameMask? mask)
         {

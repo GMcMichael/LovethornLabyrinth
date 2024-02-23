@@ -2,6 +2,7 @@
 {
     public class MenuOption
     {
+        public static Action EmptyAction { get; } = () => {};
         public ConsoleString Text;
         private Action _action;
         private int lastDepth = 0;

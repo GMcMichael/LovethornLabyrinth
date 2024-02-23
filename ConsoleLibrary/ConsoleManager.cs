@@ -51,10 +51,10 @@ namespace ConsoleLibrary
         #region Display Variables
         private ConsoleColor TextColor = ConsoleColor.White;
         private ConsoleColor BackgroundColor = ConsoleColor.Black;
-        private FrameBase? _frame;
         private StringFrame? ColorInfoFrame;
         private StringFrame? CoverFrame;
-        private MenuFrame? focusedMenu;
+        public PriorityFrame? MainFrame { get; set; }
+        public List<MenuFrame> MenuFrames { get; private set; } = new();
         #endregion
 
         #region Log Functions
@@ -112,11 +112,13 @@ namespace ConsoleLibrary
         private void OnKeyPressed(object? sender, ConsoleKey e)
         {
             bool horizontal = true;
-            int moves = 1;
+            bool forward = true;
+            MenuFrame? currMenu = MenuFrames.Count > 0 ? MenuFrames[^1] : null;
             switch (e)
             {
                 case ConsoleKey.Enter:
-                    focusedMenu?.Select();
+                    if (currMenu != null)
+                        currMenu.Select();
                     break;
                 case ConsoleKey.DownArrow:
                     horizontal = false;
@@ -125,11 +127,17 @@ namespace ConsoleLibrary
                     horizontal = false;
                     goto case ConsoleKey.LeftArrow;
                 case ConsoleKey.LeftArrow:
-                    moves = -1;
+                    forward = false;
                     goto case ConsoleKey.RightArrow;
                 case ConsoleKey.RightArrow:
-                    if (!TryMoveFrames(horizontal, moves))
-                        focusedMenu?.MoveSelection(moves);
+                    if(currMenu != null)
+                    {
+                        if (!TryMoveFrames(currMenu, horizontal, forward))
+                            currMenu.MoveSelection(forward ? 1 : -1);
+                    } else// do other
+                    {
+
+                    }
                     break;
                 default:
                     break;
@@ -138,9 +146,9 @@ namespace ConsoleLibrary
         #endregion
 
         #region Helper Functions
-        private bool TryMoveFrames(bool horizontal, int moves)
+        private bool TryMoveFrames(MenuFrame? menu, bool horizontal, bool forward)
         {
-            if(focusedMenu == null || focusedMenu.Aligns(horizontal)) return false;
+            if(menu?.Aligns(horizontal) ?? false) return false;
             // try and move menus somehow
             // maybe have a sorted list of all menus on screen
             return true;
@@ -201,12 +209,15 @@ namespace ConsoleLibrary
             while (_running)
             {
                 RenderLoop();
+                // do stuff for menus ?
             }
         }
         private void RenderLoop()
         {
-            if (_frame == null) return;
-            _frame.Render(_frame.EmptyMask);
+            if (MainFrame == null) return;
+
+            if (MenuFrames.Count > 0) MenuFrames[^1].SetFocus();
+            MainFrame.Render(MainFrame.EmptyMask);
         }
         public void ClearDisplay()
         {
@@ -218,8 +229,21 @@ namespace ConsoleLibrary
             for (int i = 0; i < _displaySize.Item2; i++)
                 Console.Write(row);
         }
-        public void SetMenu(MenuFrame menu) { focusedMenu?.SetFocus(false); focusedMenu = menu; focusedMenu?.SetFocus(true); }
-        public void SetFrame(FrameBase frame) { _frame = frame; }
+        public void PushMenu(MenuFrame frame) { MainFrame?.PushTop(frame); MenuFrames.Add(frame); }
+        public void PopMenu(MenuFrame? frame = null)
+        {
+            if (frame != null)
+            {
+                MainFrame?.Pop(frame);
+                MenuFrames.Remove(frame);
+            }
+            else if (MenuFrames.Count > 0)
+            {
+                MainFrame?.Pop(MenuFrames[^1]);
+                MenuFrames.RemoveAt(MenuFrames.Count - 1);
+            }
+        }
+        public void SetFrame(PriorityFrame frame) { MainFrame = frame; }
         public StringFrame? ColorInfo() { return ColorInfoFrame; }
         #endregion
 
