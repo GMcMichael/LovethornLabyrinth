@@ -55,6 +55,8 @@ namespace ConsoleLibrary
         private StringFrame? CoverFrame;
         public PriorityFrame? MainFrame { get; set; }
         public List<MenuFrame> MenuFrames { get; private set; } = new();
+        public bool IsBusy => _busyTracker.Item1;
+        private (bool, object?) _busyTracker = (false, null);
         #endregion
 
         #region Log Functions
@@ -86,7 +88,7 @@ namespace ConsoleLibrary
             InitColorFrame((size[0] / 2) + 4, 5, 16, 24, true);
             InitCoverFrame(size[0], size[1]);
 
-            ConsoleEvents.Instance.OnKeyPressed += OnKeyPressed;
+            ConsoleEvents.Instance.OnControlKeyPressed += HandleMenu;
         }
         public void Start()
         {
@@ -106,43 +108,14 @@ namespace ConsoleLibrary
                 while (_running)
                 {
                     if (!Console.KeyAvailable) { await Task.Yield(); continue; }
-                    ConsoleEvents.Instance.KeyPressed(Console.ReadKey(true).Key);
+                    ConsoleKeyInfo key = Console.ReadKey(true);
+
+                    if(char.IsAsciiLetterOrDigit(key.KeyChar) || key.Key == ConsoleKey.Spacebar)
+                        ConsoleEvents.Instance.AlphaNumericKeyPressed(key);
+                    else
+                        ConsoleEvents.Instance.ControlKeyPressed(key);
                 }
             });
-        }
-        private void OnKeyPressed(object? sender, ConsoleKey e)
-        {
-            bool horizontal = true;
-            bool forward = true;
-            MenuFrame? currMenu = MenuFrames.Count > 0 ? MenuFrames[^1] : null;
-            switch (e)
-            {
-                case ConsoleKey.Enter:
-                    if (currMenu != null)
-                        currMenu.Select();
-                    break;
-                case ConsoleKey.DownArrow:
-                    horizontal = false;
-                    goto case ConsoleKey.RightArrow;
-                case ConsoleKey.UpArrow:
-                    horizontal = false;
-                    goto case ConsoleKey.LeftArrow;
-                case ConsoleKey.LeftArrow:
-                    forward = false;
-                    goto case ConsoleKey.RightArrow;
-                case ConsoleKey.RightArrow:
-                    if(currMenu != null)
-                    {
-                        if (!TryMoveFrames(currMenu, horizontal, forward))
-                            currMenu.MoveSelection(forward ? 1 : -1);
-                    } else// do other
-                    {
-
-                    }
-                    break;
-                default:
-                    break;
-            }
         }
         #endregion
 
@@ -209,8 +182,8 @@ namespace ConsoleLibrary
         {
             while (_running)
             {
-                RenderLoop();
                 ConsoleEvents.Instance.TickMenu();
+                RenderLoop();
             }
         }
         private void RenderLoop()
@@ -219,6 +192,22 @@ namespace ConsoleLibrary
 
             if (MenuFrames.Count > 0) MenuFrames[^1].SetFocus();
             MainFrame.Render(MainFrame.EmptyMask);
+        }
+        public bool Reserve(object obj)
+        {
+            if (IsBusy) return false;
+
+            _busyTracker = (true, obj);
+            return true;
+        }
+        public bool Free(object obj)
+        {
+            if(IsBusy && (_busyTracker.Item2 == null || _busyTracker.Item2 == obj))
+            {
+                _busyTracker = (false, null);
+                return true;
+            }
+            return false;
         }
         public void ClearDisplay()
         {
@@ -229,6 +218,47 @@ namespace ConsoleLibrary
             string row = "".PadLeft(_displaySize.Item1);
             for (int i = 0; i < _displaySize.Item2; i++)
                 Console.Write(row);
+        }
+        public void SetFrame(PriorityFrame frame) { MainFrame = frame; }
+        public StringFrame? ColorInfo() { return ColorInfoFrame; }
+        #endregion
+
+        #region Menu Functions
+        private void HandleMenu(object? sender, ConsoleKeyInfo e)
+        {
+            bool horizontal = true;
+            bool forward = true;
+            MenuFrame? currMenu = MenuFrames.Count > 0 ? MenuFrames[^1] : null;
+            switch (e.Key)
+            {
+                case ConsoleKey.Enter:
+                    if (currMenu != null)
+                        currMenu.Select();
+                    break;
+                case ConsoleKey.DownArrow:
+                    horizontal = false;
+                    goto case ConsoleKey.RightArrow;
+                case ConsoleKey.UpArrow:
+                    horizontal = false;
+                    goto case ConsoleKey.LeftArrow;
+                case ConsoleKey.LeftArrow:
+                    forward = false;
+                    goto case ConsoleKey.RightArrow;
+                case ConsoleKey.RightArrow:
+                    if (currMenu != null)
+                    {
+                        if (IsBusy) return;
+                        if (!TryMoveFrames(currMenu, horizontal, forward))
+                            currMenu.MoveSelection(forward ? 1 : -1);
+                    }
+                    else// do other
+                    {
+
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
         public void PushMenu(MenuFrame frame) { MainFrame?.PushTop(frame); MenuFrames.Add(frame); }
         public void PopMenu(MenuFrame? frame = null)
@@ -244,8 +274,6 @@ namespace ConsoleLibrary
                 MenuFrames.RemoveAt(MenuFrames.Count - 1);
             }
         }
-        public void SetFrame(PriorityFrame frame) { MainFrame = frame; }
-        public StringFrame? ColorInfo() { return ColorInfoFrame; }
         #endregion
 
         #region Stop Mouse Click

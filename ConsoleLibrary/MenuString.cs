@@ -10,25 +10,29 @@ namespace ConsoleLibrary
         {
             _width = width;
             _text = prompt.PadRight(width).Substring(0, width);
-            ConsoleEvents.Instance.OnKeyPressed += OnKeyPressed;
+            ConsoleEvents.Instance.OnAlphaNumericKeyPressed += OnAlphaNumericPressed;
+            ConsoleEvents.Instance.OnControlKeyPressed += OnControlKeyPressed; ;
             ConsoleEvents.Instance.OnMenuTick += OnMenuTick;
             _action = () =>
             {
                 IsWriting = !IsWriting;
-                if (IsWriting) _text = "";
+                if (IsWriting) { _text = ""; ConsoleManager.Instance.Reserve(this); }
+                else ConsoleManager.Instance.Free(this);
             };
         }
 
-        private void OnKeyPressed(object? sender, ConsoleKey e)//TODO: I need to get just character keys
+        private void OnControlKeyPressed(object? sender, ConsoleKeyInfo e)
+        {
+            if (!IsWriting || e.Key != ConsoleKey.Backspace) return;
+
+            if (_text.Length > 0) _text = _text[..^1];
+        }
+
+        private void OnAlphaNumericPressed(object? sender, ConsoleKeyInfo e)
         {
             if (!IsWriting) return;
 
-            if (e == ConsoleKey.Escape)
-            {
-                IsWriting = false;
-                return;
-            }
-            if(e != ConsoleKey.Enter) _text += e.ToString();// I need to pass keyinfo instead so I can check if shift was held
+            _text += e.KeyChar;
         }
 
         private void OnMenuTick(object? sender, EventArgs e)
