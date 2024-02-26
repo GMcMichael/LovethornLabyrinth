@@ -3,21 +3,35 @@ namespace ConsoleLibrary
 {
     public class MenuString : MenuOption
     {
-        private int _width;
+        public enum Mode
+        {
+            AlphaNumeric,
+            Letters,
+            Numbers
+        }
+        private Mode _mode;
+        private int _minWidth;
+        private string _label;
         private string _text;
         public bool IsWriting { get; private set; } = false;
-        public MenuString(string prompt, int width) : base(new(prompt.PadRight(width).Substring(0, width)), () => { })
+
+        public MenuString(string label, string text, Action<string, MenuString> action) : this(label, text, 10, Mode.AlphaNumeric, action) { }
+        public MenuString(string label, string text, int minWidth, Action<string, MenuString> action) : this(label, text, minWidth, Mode.AlphaNumeric, action) { }
+        public MenuString(string label, string text, Mode mode, Action<string, MenuString> action) : this(label, text, 10, mode, action) { }
+        public MenuString(string label, string text, int minWidth, Mode mode, Action<string, MenuString> action) : base(new((label + ": " + text).PadRight(minWidth)), frame => { })
         {
-            _width = width;
-            _text = prompt.PadRight(width).Substring(0, width);
+            _label = label;
+            _text = text;
+            _minWidth = minWidth;
+            _mode = mode;
             ConsoleEvents.Instance.OnAlphaNumericKeyPressed += OnAlphaNumericPressed;
             ConsoleEvents.Instance.OnControlKeyPressed += OnControlKeyPressed; ;
             ConsoleEvents.Instance.OnMenuTick += OnMenuTick;
-            _action = () =>
+            _action = frame =>
             {
                 IsWriting = !IsWriting;
-                if (IsWriting) { _text = ""; ConsoleManager.Instance.Reserve(this); }
-                else ConsoleManager.Instance.Free(this);
+                if (IsWriting) ConsoleManager.Instance.Reserve(this);
+                else { ConsoleManager.Instance.Free(this); action(_text, this); }
             };
         }
 
@@ -32,6 +46,18 @@ namespace ConsoleLibrary
         {
             if (!IsWriting) return;
 
+            switch(_mode)
+            {
+                case Mode.Letters:
+                    if (!char.IsAsciiLetter(e.KeyChar)) return;
+                    break;
+                 case Mode.Numbers:
+                    if (!char.IsAsciiDigit(e.KeyChar)) return;
+                    break;
+                default:
+                    break;
+            }
+
             _text += e.KeyChar;
         }
 
@@ -39,7 +65,9 @@ namespace ConsoleLibrary
         {
             if (!IsWriting) return;
 
-            Text.Data = _text.PadRight(_width).Substring(0, _width);
+            Text.Data = (_label + ": " + _text).PadRight(_minWidth);
         }
+
+        public void ClearText() { _text = ""; }
     }
 }

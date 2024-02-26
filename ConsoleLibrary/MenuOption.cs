@@ -2,19 +2,20 @@
 {
     public class MenuOption
     {
-        public static Action EmptyAction { get; } = () => {};
+        public static MenuOption Back = new(new("Back"), (frame) => { ConsoleManager.Instance.PopMenu()?.Clear(); });
+        public static Action<MenuFrame> EmptyAction { get; } = frame => {};
         public ConsoleString Text;
-        protected Action _action;
+        protected Action<MenuFrame> _action;
         private int lastDepth = 0;
         public int LastDepth { get { return lastDepth; } }
         public int Length => Text.Length;
         public int Remaning => Length - lastDepth;
-        public MenuOption(ConsoleString text, Action action)
+        public MenuOption(ConsoleString text, Action<MenuFrame>? action = null)
         {
             Text = text;
-            _action = action;
+            _action = action ?? EmptyAction;
         }
-        public void Select() { _action(); }
+        public void Select(MenuFrame frame) { _action(frame); }
         public ConsoleString GetRemaining() => Text.SubString(lastDepth, Remaning);
 
         private int BackAdd(ref int head, List<ConsoleString> list, ConsoleString consoleString) {

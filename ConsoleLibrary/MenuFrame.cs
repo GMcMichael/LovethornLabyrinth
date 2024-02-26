@@ -15,7 +15,7 @@
         private ConsoleString rowPadding => ConsoleString.Pad(PadLength);
         private ConsoleString leftSelector => new("<", hoveredTextColor, hoveredBackColor);
         private ConsoleString rightSelector => new(">", hoveredTextColor, hoveredBackColor);
-        public MenuFrame(MenuOption[] options, bool rowMode, bool wraps, int x, int y, int width, int height, bool border = false) : base(x, y, width, height, border)
+        public MenuFrame(MenuOption[] options, bool rowMode, bool wraps, int x, int y, int width, int height = 1, bool border = false) : base(x, y, width, height, border)
         {
             Options = options;
             RowMode = rowMode;
@@ -33,7 +33,7 @@
             if (currOption < 0) currOption = Options.Length - 1;
             else currOption %= Options.Length;
         }
-        public void Select() => Options[currOption].Select();
+        public void Select() => Options[currOption].Select(this);
         private void DrawBuffer(ref int tail, FrameMask? mask, List<ConsoleString> buffer) {
             int localTail = tail;
             buffer.ForEach(str => {
@@ -45,7 +45,7 @@
         }
         public override void Render(FrameMask? mask)
         {
-            if(RowMode) // one row
+            if(RowMode)
             {
                 //go to center
                 int head = (Width - Options[currOption].Length - (PadLength * 2)) / 2;
@@ -76,35 +76,38 @@
                     if (tail >= Width) break;
                 }
 
-                int tempTail = tail;
-                //until no options, draw back from head to 0
-                if (head > 0)
+                if (Wraps)
                 {
-                    int fillOption = Options.Length - 1;
-                    while (head > 0 && fillOption > optionTail)
-                        buffer.AddRange(Options[fillOption--].AttemptBack(ref head, rowPadding));
+                    int tempTail = tail;
+                    //until no options, draw back from head to 0
+                    if (head > 0)
+                    {
+                        int fillOption = Options.Length - 1;
+                        while (head > 0 && fillOption > optionTail)
+                            buffer.AddRange(Options[fillOption--].AttemptBack(ref head, rowPadding));
 
-                    if (head > 0 && fillOption == optionTail && Options[fillOption].LastDepth > 0)
-                        buffer.Add(Options[fillOption].GetRemaining());
+                        if (head > 0 && fillOption == optionTail && Options[fillOption].LastDepth > 0)
+                            buffer.Add(Options[fillOption].GetRemaining());
 
-                    buffer.Reverse();
-                    if (head > 0) buffer.Add(ConsoleString.Pad(head));
-                    tempTail = tail;
-                    head = tail = 0;
+                        buffer.Reverse();
+                        if (head > 0) buffer.Add(ConsoleString.Pad(head));
+                        tempTail = tail;
+                        head = tail = 0;
 
-                    if (buffer.Count > 0) DrawBuffer(ref tail, mask, buffer);
-                    buffer.Clear();
-                    tail = tempTail;
+                        if (buffer.Count > 0) DrawBuffer(ref tail, mask, buffer);
+                        buffer.Clear();
+                        tail = tempTail;
+                    }
+
+                    optionTail = ++optionTail % Options.Length;
+                    //until tail is at width or no options, draw from start
+                    while (tempTail < Width && optionTail < optionHead)
+                        buffer.AddRange(Options[optionTail++].AttemptForward(ref tempTail, Width, rowPadding));
+
+                    if (tempTail < Width) buffer.Insert(0, ConsoleString.Pad(Width - tempTail));
+
+                    DrawBuffer(ref tail, mask, buffer);
                 }
-
-                optionTail = ++optionTail % Options.Length;
-                //until tail is at width or no options, draw from start
-                while (tempTail < Width && optionTail < optionHead)
-                    buffer.AddRange(Options[optionTail++].AttemptForward(ref tempTail, Width, rowPadding));
-
-                if (tempTail < Width) buffer.Insert(0, ConsoleString.Pad(Width - tempTail));
-
-                DrawBuffer(ref tail, mask, buffer);
             }
             else // multiple rows one column
             {
@@ -116,6 +119,12 @@
         public override MenuFrame DeepCopy()
         {
             return new(Options, RowMode, Wraps, X, Y, Width, Height, Border);
+        }
+
+        public void Clear()
+        {
+            int tail = 0;
+            DrawBuffer(ref tail, null, new([ConsoleString.Pad(Width)]));
         }
     }
 }

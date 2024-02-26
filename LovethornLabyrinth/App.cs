@@ -13,7 +13,7 @@ namespace LovethornLabyrinth
         
         private bool SaveLogs = false;
 
-        private int[] ConsoleDimensions = { 120, 30 };
+        private int[] ConsoleDimensions = { 120, 30 }; //TODO: this should be gotten at runtime dynamically to resize the console text to the actual window
 
         ConsoleManager consoleManager = ConsoleManager.Instance;
         NetworkManager networkManager = NetworkManager.Instance;
@@ -29,6 +29,7 @@ namespace LovethornLabyrinth
             consoleManager.Init(ConsoleDimensions, AppPath, SaveLogs);
             networkManager.Init(AppPath);
 
+            consoleManager.CoverScreen();
             InitStartFrame();
 
             consoleManager.Start();
@@ -39,63 +40,123 @@ namespace LovethornLabyrinth
             NetworkEvents.Instance.OnLog += SendLogToConsole;
             NetworkEvents.Instance.OnMessageRecieved.OnEvent += OnMessageRecieved;
             NetworkEvents.Instance.OnServerStart.OnEvent += OnServerStart;
-            NetworkEvents.Instance.OnServerEnd.OnEvent += OnServerEnd;
+            NetworkEvents.Instance.OnClientJoin.OnEvent += OnClientJoin;
 
             ConsoleEvents.Instance.OnMessageSend.OnEvent += OnSendMessage;
             ConsoleEvents.Instance.OnCommandSend.OnEvent += OnSendCommand;
+
+            NetworkEvents.Instance.OnServerEnd.OnEvent += OnServerEnd;
+            NetworkEvents.Instance.OnClientLeave.OnEvent += OnClientLeave;
         }
         #endregion
 
         #region Helper Functions
         private void Log(string message) { ConsoleManager.Log(message); }
+        #endregion
+
+        #region Frames
+
         private void InitStartFrame()
         {
-            consoleManager.CoverScreen();
-
             PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
 
             StringFrame WelcomeText = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
             WelcomeText.PushEmpty(3);
             WelcomeText.PushCenter(new ConsoleString[]
             {
-                new("Select an option:"),
+                new("Chatroom:"),
             });
 
             int menuWidth = 50;
+            int menuHeightOffset = 5;
             int menuX = (ConsoleDimensions[0] - menuWidth) / 2;
-            int menuY = ConsoleDimensions[1] - (ConsoleDimensions[1] / 3);
-            MenuFrame menuFrame = new(new MenuOption[]
-            {
-                new(new("Start"), MenuOption.EmptyAction), //TODO: go though join / host menu, then end at screen showing chatroom
-                new(new("Change Name"), () =>
+            int menuY = ConsoleDimensions[1] - (ConsoleDimensions[1] / 3) - menuHeightOffset * 2;
+            MenuFrame menuFrame = new([
+                new(new("Start"), frame =>
                 {
-                    MenuFrame nameChange = new(new MenuOption[]
-                    {
-                        new(new("Cancel"), () =>
+                    consoleManager.PushMenu(new([
+                        new(new("Join"), frame =>
                         {
-                            consoleManager.PopMenu();
+                            string host = "";
+                            string port = NetworkManager._defaultPort.ToString();
+                            consoleManager.PushMenu(new([
+                                new MenuString("Enter IP here", host, (str, field) => host = str),
+                                new MenuString("Port", port, 5, MenuString.Mode.Numbers, (str, field) => port = str),
+                                new(new("Join"), frame => ConsoleEvents.Instance.SendCommand(new(CommandType.Connect, [string.IsNullOrEmpty(host) ? NetworkManager.GetLocalIP() : host, port]))),
+                                MenuOption.Back
+                                ], true, false, menuX, menuY + menuHeightOffset * 2, menuWidth));
                         }),
-                        new MenuString("Enter new name...", 20),//pass current username instead
-                        new(new("Enter"), () =>
+                        new(new("Host"), frame =>
                         {
-                            //TODO: update name from the menu string text
-                            consoleManager.PopMenu();
-                        })
-                    }, true, false, menuX, menuY - 5, menuWidth, 1);
-                    consoleManager.PushMenu(nameChange);
+                            string port = NetworkManager._defaultPort.ToString();
+                            consoleManager.PushMenu(new([
+                                new MenuString("Port", port, 5, MenuString.Mode.Numbers, (str, field) => port = str),
+                                new(new("Host"), frame => ConsoleEvents.Instance.SendCommand(new(CommandType.Host, [NetworkManager.GetLocalIP(), port]))),
+                                MenuOption.Back
+                                ], true, false, menuX, menuY + menuHeightOffset * 2, menuWidth));
+                        }),
+                        MenuOption.Back
+                    ], true, true, menuX, menuY + menuHeightOffset, menuWidth));
                 }),
-                new(new("Quit"), () => { consoleManager._running = false; ConsoleEvents.Instance.SendCommand(new(CommandType.Quit)); }),
-            }, true, true, menuX, menuY, menuWidth, 1);
+                new(new("Change Name"), frame =>
+                {
+                    consoleManager.PushMenu(new([
+                        new MenuString("Username", networkManager._clientConnection._user.Username, (str, field) => { ConsoleEvents.Instance.SendCommand(new(CommandType.User, [str])); }),
+                        MenuOption.Back
+                    ], true, false, menuX, menuY + menuHeightOffset, menuWidth));
+                }),
+                new(new("Quit"), frame => { consoleManager._running = false; ConsoleEvents.Instance.SendCommand(new(CommandType.Quit)); }),
+            ], true, true, menuX, menuY, menuWidth);
 
             priorityFrame.Push(WelcomeText);
             consoleManager.SetFrame(priorityFrame);
 
             consoleManager.PushMenu(menuFrame);
         }
+        private void InitConsoleFrame()
+        {//TODO: make the chatroom here
+            PriorityFrame mainFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
+
+            int footerHeight = 5;
+            int usersWidth = 20;
+            //TODO This should be a scrollable menu frame
+            StringFrame users = new(1, 1, usersWidth, ConsoleDimensions[1] - 5 - footerHeight, true);
+            users.PushCenter([
+                new("User 1"),
+                new("User 2"),
+                new("User 3"),
+                new("User 4"),
+                new("User 5"),
+            ]);
+            
+            //should be a scrollable frame
+            StringFrame chatLog = new(usersWidth + 3, 1, ConsoleDimensions[0] - (usersWidth + 5), ConsoleDimensions[1] - (footerHeight + 5), true);
+            chatLog.PushEmpty(3);
+            chatLog.Push(new("User 1: Hey!"));
+            chatLog.Push(new("User 1: Hello!"));
+
+            MenuFrame chatUI = new([
+                new(new("Options"), frame =>
+                {
+                    consoleManager.PushMenu(new([
+                        new(new("Leave"), frame => { ConsoleEvents.Instance.SendCommand(CommandType.Leave, []); }),
+                        new(new("Users"), frame => { /*consoleManager.PushMenu(users);*/ }),
+                        MenuOption.Back
+                    ], true, false, 0, ConsoleDimensions[1] - (footerHeight + 2), ConsoleDimensions[0]));
+                }),
+                new MenuString("Message", "", (str, field) => { field.ClearText(); NetworkEvents.Instance.SendMessage(new(str, networkManager._clientConnection._user.Username)); })
+                ], true, false, 0, ConsoleDimensions[1] - (footerHeight - 2), ConsoleDimensions[0]);
+
+
+            mainFrame.Push(users);
+            mainFrame.Push(chatLog);
+
+            consoleManager.SetFrame(mainFrame);
+
+            consoleManager.PushMenu(chatUI);
+        }
         private void InitLovethornFrame()
         {
-            consoleManager.CoverScreen();
-
             PriorityFrame priorityFrame = new(0, 0, ConsoleDimensions[0], ConsoleDimensions[1]);
 
             StringFrame WelcomeFrame = new(0, 0, ConsoleDimensions[0] / 2, ConsoleDimensions[1], true);
@@ -123,21 +184,11 @@ namespace LovethornLabyrinth
             MessageEvent messageEvent = (MessageEvent)e;
             Log($"{messageEvent.Username}: {messageEvent.Message}");
         }
-        private void OnServerStart(object? sender, BaseEventArgs e)
-        {
-            ServerStartEvent serverEvent = (ServerStartEvent)e;
-            Log("Server Started");
-        }
-        private void OnServerEnd(object? sender, BaseEventArgs e)
-        {
-            ServerEndEvent serverEvent = (ServerEndEvent)e;
-            Log("Server Ended");
-        }
-        private void OnSendCommand(object? sender, BaseEventArgs e)
-        {
-            NetworkEvents.Instance.CommandRecieved((CommandEvent)e);
-        }
-
+        private void OnServerStart(object? sender, BaseEventArgs e) { InitConsoleFrame();}
+        private void OnClientJoin(object? sender, BaseEventArgs e) { InitConsoleFrame(); }
+        private void OnSendCommand(object? sender, BaseEventArgs e) { NetworkEvents.Instance.CommandRecieved((CommandEvent)e); }
+        private void OnClientLeave(object? sender, BaseEventArgs e) { InitStartFrame(); }
+        private void OnServerEnd(object? sender, BaseEventArgs e) { InitStartFrame(); }
         private void OnSendMessage(object? sender, BaseEventArgs e)
         {
             e.Username = NetworkManager.Instance._clientConnection._user.Username;

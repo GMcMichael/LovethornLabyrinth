@@ -82,7 +82,7 @@
         }
         public void AttemptRender((int, int) origin, string row, FrameMask? mask = null)
         {
-            if (origin.Item1 < 0 || origin.Item1 >= ConsoleManager.Instance._displaySize.Item1 ||
+            if (origin.Item1 >= ConsoleManager.Instance._displaySize.Item1 ||
                 origin.Item2 < 0 || origin.Item2 >= ConsoleManager.Instance._displaySize.Item2) return;
             for (int x = 0; x < row.Length; x++)
             {

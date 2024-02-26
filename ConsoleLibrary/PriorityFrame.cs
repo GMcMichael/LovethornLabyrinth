@@ -17,7 +17,7 @@
             if (Border) DrawBorder(mask);
 
             PriorityQueue<FrameBase, int> temp = new PriorityQueue<FrameBase, int>(PriorityQueue.UnorderedItems);
-            while(temp.Count > 0 && (mask is null ? false : !mask.HasAllSet()))
+            while(temp.Count > 0 && (mask is null ? true : !mask.HasAllSet()))
                 temp.Dequeue().Render(mask);
         }
 

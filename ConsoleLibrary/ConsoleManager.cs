@@ -52,7 +52,6 @@ namespace ConsoleLibrary
         private ConsoleColor TextColor = ConsoleColor.White;
         private ConsoleColor BackgroundColor = ConsoleColor.Black;
         private StringFrame? ColorInfoFrame;
-        private StringFrame? CoverFrame;
         public PriorityFrame? MainFrame { get; set; }
         public List<MenuFrame> MenuFrames { get; private set; } = new();
         public bool IsBusy => _busyTracker.Item1;
@@ -86,7 +85,6 @@ namespace ConsoleLibrary
             InitLog(AppPath, saveLogs);
             SetSize(size);
             InitColorFrame((size[0] / 2) + 4, 5, 16, 24, true);
-            InitCoverFrame(size[0], size[1]);
 
             ConsoleEvents.Instance.OnControlKeyPressed += HandleMenu;
         }
@@ -167,14 +165,19 @@ namespace ConsoleLibrary
             ColorInfoFrame.PushCenter(new ConsoleString("Magenta", ConsoleColor.Magenta));
             ColorInfoFrame.PushCenter(new ConsoleString("Dark Magenta", ConsoleColor.DarkMagenta));
         }
-        private void InitCoverFrame(int width, int height)
+        public PriorityFrame CoverFrame()
         {
-            CoverFrame = new(0, 0, width, height);
+            StringFrame coverFrame = new(0, 0, _displaySize.Item1, _displaySize.Item2);
+            PriorityFrame frame = new(0, 0, _displaySize.Item1, _displaySize.Item2);
 
-            for (int i = 0; i < height; i++)
-                CoverFrame.Push(ConsoleRow.Fill(width, '░', ConsoleColor.Red));
+            for (int i = 0; i < _displaySize.Item2; i++)
+                coverFrame.PushRow(ConsoleRow.Fill(_displaySize.Item1, '░', ConsoleColor.Red));
+
+            frame.Push(coverFrame);
+
+            return frame;
         }
-        public void CoverScreen() { CoverFrame?.Render(null); }
+        public void CoverScreen() { CoverFrame().Render(null); }
         #endregion
 
         #region Display Functions
@@ -219,7 +222,7 @@ namespace ConsoleLibrary
             for (int i = 0; i < _displaySize.Item2; i++)
                 Console.Write(row);
         }
-        public void SetFrame(PriorityFrame frame) { MainFrame = frame; }
+        public void SetFrame(PriorityFrame frame) { MainFrame = frame; ClearMenu(); }
         public StringFrame? ColorInfo() { return ColorInfoFrame; }
         #endregion
 
@@ -261,7 +264,7 @@ namespace ConsoleLibrary
             }
         }
         public void PushMenu(MenuFrame frame) { MainFrame?.PushTop(frame); MenuFrames.Add(frame); }
-        public void PopMenu(MenuFrame? frame = null)
+        public MenuFrame? PopMenu(MenuFrame? frame = null)
         {
             if (frame != null)
             {
@@ -270,9 +273,16 @@ namespace ConsoleLibrary
             }
             else if (MenuFrames.Count > 0)
             {
-                MainFrame?.Pop(MenuFrames[^1]);
+                frame = MenuFrames[^1];
+                MainFrame?.Pop(frame);
                 MenuFrames.RemoveAt(MenuFrames.Count - 1);
             }
+
+            return frame;
+        }
+        private void ClearMenu()
+        {
+            MenuFrames.Clear();
         }
         #endregion
 

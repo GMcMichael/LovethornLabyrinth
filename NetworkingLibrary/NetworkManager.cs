@@ -51,8 +51,10 @@ namespace NetworkingLibrary
             NetworkEvents.Instance.OnDataSend.OnEvent += OnSendData;
             NetworkEvents.Instance.OnDataReceived.OnEvent += OnDataReceived;
             NetworkEvents.Instance.OnCommandRecieved.OnEvent += OnCommandRecieved;
-            NetworkEvents.Instance.OnClientJoin.OnEvent += OnClientJoin;
+            NetworkEvents.Instance.OnMessageSend.OnEvent += OnMessageSend;
         }
+
+        private void OnMessageSend(object? sender, BaseEventArgs e) { AddDataToSend(new(((ISerializable)e).Serialize(), e.Username)); }
 
         private void OnSendData(object? sender, BaseEventArgs e)
         {
@@ -116,7 +118,7 @@ namespace NetworkingLibrary
                 case CommandType.Leave:
                     if(_hosting)
                     {
-                        _hosting = false;// check to see if all this is done in the event, should it be?
+                        _hosting = false;
                         foreach (var conn in _hostClientConnections)
                         {
                             conn.CloseConnection();
@@ -126,7 +128,7 @@ namespace NetworkingLibrary
                     }
                     if (_connected)
                     {
-                        _connected = false;// check to see if this is set after the event
+                        _connected = false;
                         NetworkEvents.Instance.ClientLeft(new ClientLeaveEvent(_clientConnection._socket.RemoteEndPoint, _clientConnection._user.Username));
                     }
                     _clientConnection.Reset();
@@ -152,12 +154,6 @@ namespace NetworkingLibrary
                     Log($"Unknown Command Type: {commandEvent.Command}");
                     break;
             }
-        }
-
-        private void OnClientJoin(object? sender, BaseEventArgs e)
-        {
-            ClientJoinEvent clientJoinEvent = (ClientJoinEvent)e;
-            SaveMostRecentConnection(new Connection(clientJoinEvent.Host, clientJoinEvent.Port));
         }
         #endregion
 
@@ -386,7 +382,9 @@ namespace NetworkingLibrary
             _clientConnection.ListenForData();
             SendData();
 
-            NetworkEvents.Instance.ClientJoined(new ClientJoinEvent(host, (int)port, _clientConnection._user.Username));
+            SaveMostRecentConnection(new Connection(host, (int)port));
+
+            NetworkEvents.Instance.ClientJoined(new(host, (int)port, _clientConnection._user.Username));
 
             _isBusy = false;
         }
